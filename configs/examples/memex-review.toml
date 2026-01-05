@@ -1,0 +1,47 @@
+# Example focusgroup session config for reviewing the memex CLI tool
+
+[session]
+name = "memex-review"
+mode = "structured"  # single | discussion | structured
+moderator = true
+
+[tool]
+type = "cli"
+command = "mx"
+help_args = ["--help"]
+
+[[agents]]
+provider = "claude"
+mode = "api"
+model = "claude-sonnet-4-20250514"
+name = "Claude (API)"
+
+[[agents]]
+provider = "claude"
+mode = "cli"
+name = "Claude (CLI)"
+# Uses the actual `claude` CLI for authentic behavior
+
+[[agents]]
+provider = "openai"
+mode = "api"
+model = "gpt-4o"
+name = "GPT-4o"
+
+[[agents]]
+provider = "codex"
+mode = "cli"
+name = "Codex"
+# Uses the actual `codex` CLI
+
+[questions]
+rounds = [
+    "Look at this tool's help output. What's your first impression of the interface?",
+    "How would you use this tool to find information about deployments?",
+    "What aspects of the CLI design are confusing or could be improved?",
+    "What features are missing that you'd want as an AI agent using this tool?",
+]
+
+[output]
+format = "markdown"
+save_log = true
