@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from pathlib import Path
+from subprocess import CompletedProcess
 from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
@@ -629,3 +630,162 @@ class TestInitCommand:
         content = existing.read_text()
         assert "old" not in content
         assert "mytool" in content
+
+
+class TestDoctorCommand:
+    """Test 'doctor' command."""
+
+    def test_doctor_help(self):
+        """Doctor command shows help."""
+        result = runner.invoke(app, ["doctor", "--help"])
+        assert result.exit_code == 0
+        assert "Check focusgroup setup" in result.stdout
+
+    @patch("focusgroup.cli.subprocess.run")
+    def test_doctor_all_providers_installed(self, mock_run, tmp_path: Path, monkeypatch):
+        """Doctor shows success when all providers are installed."""
+        # Mock config directories
+        config_dir = tmp_path / "config"
+        agents_dir = config_dir / "agents"
+        config_dir.mkdir()
+        agents_dir.mkdir()
+        monkeypatch.setattr("focusgroup.config.get_default_config_dir", lambda: config_dir)
+        monkeypatch.setattr("focusgroup.config.get_agents_dir", lambda: agents_dir)
+
+        # Mock subprocess to return success for both CLIs
+        mock_run.return_value = CompletedProcess(
+            args=["test", "--version"],
+            returncode=0,
+            stdout="test-cli 1.0.0",
+            stderr="",
+        )
+
+        result = runner.invoke(app, ["doctor"])
+
+        assert result.exit_code == 0
+        assert "All checks passed" in result.stdout
+        assert "✓" in result.stdout
+
+    @patch("focusgroup.cli.subprocess.run")
+    def test_doctor_missing_provider(self, mock_run, tmp_path: Path, monkeypatch):
+        """Doctor shows error when a provider is not installed."""
+        # Mock config directories
+        config_dir = tmp_path / "config"
+        agents_dir = config_dir / "agents"
+        config_dir.mkdir()
+        agents_dir.mkdir()
+        monkeypatch.setattr("focusgroup.config.get_default_config_dir", lambda: config_dir)
+        monkeypatch.setattr("focusgroup.config.get_agents_dir", lambda: agents_dir)
+
+        # Mock subprocess to raise FileNotFoundError (CLI not found)
+        mock_run.side_effect = FileNotFoundError("Command not found")
+
+        result = runner.invoke(app, ["doctor"])
+
+        assert result.exit_code == 0  # Doctor doesn't fail, just reports
+        assert "Not installed" in result.stdout
+        assert "✗" in result.stdout
+        assert "Some providers are not installed" in result.stdout
+
+    @patch("focusgroup.cli.subprocess.run")
+    def test_doctor_shows_install_instructions(self, mock_run, tmp_path: Path, monkeypatch):
+        """Doctor shows install instructions for missing providers."""
+        config_dir = tmp_path / "config"
+        agents_dir = config_dir / "agents"
+        config_dir.mkdir()
+        agents_dir.mkdir()
+        monkeypatch.setattr("focusgroup.config.get_default_config_dir", lambda: config_dir)
+        monkeypatch.setattr("focusgroup.config.get_agents_dir", lambda: agents_dir)
+
+        mock_run.side_effect = FileNotFoundError("Command not found")
+
+        result = runner.invoke(app, ["doctor"])
+
+        # Should show install instructions
+        assert "npm install" in result.stdout or "Install:" in result.stdout
+
+    @patch("focusgroup.cli.subprocess.run")
+    @patch("focusgroup.cli.get_default_storage")
+    def test_doctor_verbose_mode(
+        self, mock_storage_fn, mock_run, tmp_path: Path, monkeypatch
+    ):
+        """Doctor verbose mode shows additional info."""
+        config_dir = tmp_path / "config"
+        agents_dir = config_dir / "agents"
+        config_dir.mkdir()
+        agents_dir.mkdir()
+        monkeypatch.setattr("focusgroup.config.get_default_config_dir", lambda: config_dir)
+        monkeypatch.setattr("focusgroup.config.get_agents_dir", lambda: agents_dir)
+
+        mock_run.return_value = CompletedProcess(
+            args=["test", "--version"],
+            returncode=0,
+            stdout="test-cli 1.0.0",
+            stderr="",
+        )
+
+        mock_storage = MagicMock()
+        mock_storage.list_sessions.return_value = []
+        mock_storage_fn.return_value = mock_storage
+
+        result = runner.invoke(app, ["doctor", "--verbose"])
+
+        assert result.exit_code == 0
+        assert "Auth:" in result.stdout
+        assert "Storage:" in result.stdout
+
+    @patch("focusgroup.cli.subprocess.run")
+    def test_doctor_shows_agent_preset_count(self, mock_run, tmp_path: Path, monkeypatch):
+        """Doctor shows count of agent presets."""
+        config_dir = tmp_path / "config"
+        agents_dir = config_dir / "agents"
+        config_dir.mkdir()
+        agents_dir.mkdir()
+
+        # Create some preset files
+        (agents_dir / "expert.toml").write_text('[agent]\nprovider = "claude"')
+        (agents_dir / "reviewer.toml").write_text('[agent]\nprovider = "codex"')
+
+        monkeypatch.setattr("focusgroup.config.get_default_config_dir", lambda: config_dir)
+        monkeypatch.setattr("focusgroup.config.get_agents_dir", lambda: agents_dir)
+
+        mock_run.return_value = CompletedProcess(
+            args=["test", "--version"],
+            returncode=0,
+            stdout="test-cli 1.0.0",
+            stderr="",
+        )
+
+        result = runner.invoke(app, ["doctor"])
+
+        assert result.exit_code == 0
+        assert "2 presets" in result.stdout
+
+    @patch("focusgroup.cli.subprocess.run")
+    def test_doctor_partial_provider_failure(self, mock_run, tmp_path: Path, monkeypatch):
+        """Doctor handles one provider installed, one missing."""
+        config_dir = tmp_path / "config"
+        agents_dir = config_dir / "agents"
+        config_dir.mkdir()
+        agents_dir.mkdir()
+        monkeypatch.setattr("focusgroup.config.get_default_config_dir", lambda: config_dir)
+        monkeypatch.setattr("focusgroup.config.get_agents_dir", lambda: agents_dir)
+
+        # First call succeeds (claude), second fails (codex)
+        def run_side_effect(cmd, **kwargs):
+            if cmd[0] == "claude":
+                return CompletedProcess(
+                    args=cmd, returncode=0, stdout="claude 1.0.0", stderr=""
+                )
+            else:
+                raise FileNotFoundError("codex not found")
+
+        mock_run.side_effect = run_side_effect
+
+        result = runner.invoke(app, ["doctor"])
+
+        assert result.exit_code == 0
+        # Should have both success and failure indicators
+        assert "✓" in result.stdout  # claude succeeded
+        assert "✗" in result.stdout  # codex failed
+        assert "Some providers are not installed" in result.stdout
