@@ -89,8 +89,11 @@ class ToolHelp:
                 return section
         return None
 
-    def to_context_string(self) -> str:
+    def to_context_string(self, exploration: bool = False) -> str:
         """Format help as context string for agent prompts.
+
+        Args:
+            exploration: If True, include instructions for interactive exploration
 
         Returns:
             Formatted string suitable for providing to agents as context
@@ -114,7 +117,33 @@ class ToolHelp:
             elif section.content:
                 lines.append(section.content)
 
+        # Add exploration instructions if enabled
+        if exploration:
+            lines.append(self._exploration_instructions())
+
         return "\n".join(lines)
+
+    def _exploration_instructions(self) -> str:
+        """Generate instructions for interactive tool exploration."""
+        return f"""
+
+## Interactive Exploration
+
+**IMPORTANT**: You can and should run `{self.tool_name}` commands to explore this tool before giving feedback!
+
+### How to Explore
+1. Try running `{self.tool_name} --help` to see the full help
+2. Run a few example commands to see actual output
+3. Test edge cases and error handling
+4. Explore subcommands that interest you
+
+### What to Evaluate
+- Does the output make sense? Is it parseable?
+- Are error messages helpful?
+- Does the tool behave as documented?
+- What would make it easier for you as an AI agent to use?
+
+Run commands now to form your opinion based on real usage, not just documentation."""
 
 
 @runtime_checkable

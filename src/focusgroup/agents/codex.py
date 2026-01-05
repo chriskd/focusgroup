@@ -57,9 +57,13 @@ class CodexCLIAgent(BaseAgent):
         full_prompt = self._build_full_prompt(prompt, context)
         start_time = time.perf_counter()
 
-        # Build command - codex uses -q/--quiet for non-interactive mode
-        # and accepts prompt as argument
-        cmd = ["codex", "--quiet", "--full-auto", full_prompt]
+        # Build command - codex uses `exec` subcommand for non-interactive mode
+        # Use permissive sandbox for exploration mode to allow running arbitrary CLIs
+        if self._config.exploration:
+            # danger-full-access allows running arbitrary commands without sandbox restrictions
+            cmd = ["codex", "exec", "--sandbox", "danger-full-access", full_prompt]
+        else:
+            cmd = ["codex", "exec", "--full-auto", full_prompt]
 
         # Add model if specified
         if self._config.model:
@@ -128,7 +132,11 @@ class CodexCLIAgent(BaseAgent):
         """
         full_prompt = self._build_full_prompt(prompt, context)
 
-        cmd = ["codex", "--quiet", "--full-auto", full_prompt]
+        # Use permissive sandbox for exploration mode
+        if self._config.exploration:
+            cmd = ["codex", "exec", "--sandbox", "danger-full-access", full_prompt]
+        else:
+            cmd = ["codex", "exec", "--full-auto", full_prompt]
         if self._config.model:
             cmd.extend(["--model", self._config.model])
 
