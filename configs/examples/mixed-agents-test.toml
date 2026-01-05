@@ -33,13 +33,11 @@ command = "mx"               # Must be in PATH for agents to run
 # Agent 1: Claude CLI with exploration
 [[agents]]
 provider = "claude"
-mode = "cli"                 # Required for exploration
 name = "Claude"
 
 # Agent 2: Codex CLI with exploration
 [[agents]]
 provider = "codex"
-mode = "cli"                 # Required for exploration
 name = "Codex"
 
 [questions]

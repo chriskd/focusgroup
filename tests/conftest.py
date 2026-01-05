@@ -7,7 +7,7 @@ from typing import ClassVar
 import pytest
 
 from focusgroup.agents.base import AgentResponse, BaseAgent, StreamChunk
-from focusgroup.config import AgentConfig, AgentMode, AgentProvider
+from focusgroup.config import AgentConfig, AgentProvider
 from focusgroup.storage.session_log import (
     AgentResponse as SessionAgentResponse,
 )
@@ -85,7 +85,6 @@ class MockAgent(BaseAgent):
             content=response_text,
             agent_name=self.name,
             model="mock-model-v1",
-            mode=self.config.mode,
             tokens_in=self._tokens_in,
             tokens_out=self._tokens_out,
             latency_ms=self._latency_ms,
@@ -152,7 +151,6 @@ def create_mock_agent(
     """
     config = AgentConfig(
         provider=provider,
-        mode=AgentMode.API,
         name=name,
     )
     return MockAgent(config, response_template=response_template, **kwargs)
@@ -201,9 +199,9 @@ def sample_session() -> SessionLog:
                         tokens_used=150,
                     ),
                     SessionAgentResponse(
-                        agent_name="GPT-4",
-                        provider="openai",
-                        model="gpt-4o",
+                        agent_name="Codex",
+                        provider="codex",
+                        model=None,
                         prompt="How usable is this CLI?",
                         response="Good structure overall, could use more examples.",
                         duration_ms=2000,
@@ -243,15 +241,12 @@ def full_config_dict() -> dict:
         "agents": [
             {
                 "provider": "claude",
-                "mode": "api",
                 "model": "claude-sonnet-4-20250514",
                 "name": "Claude Expert",
             },
             {
-                "provider": "openai",
-                "mode": "api",
-                "model": "gpt-4o",
-                "name": "GPT Expert",
+                "provider": "codex",
+                "name": "Codex Expert",
             },
         ],
         "questions": {

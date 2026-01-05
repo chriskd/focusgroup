@@ -3,12 +3,11 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from focusgroup.config import AgentConfig, AgentMode, AgentProvider
+from focusgroup.config import AgentConfig, AgentProvider
 
 from .base import BaseAgent
-from .claude import ClaudeAPIAgent, ClaudeCLIAgent, create_claude_agent
+from .claude import ClaudeCLIAgent, create_claude_agent
 from .codex import CodexCLIAgent, create_codex_agent
-from .openai_agent import OpenAIAgent, create_openai_agent
 
 
 @dataclass
@@ -19,43 +18,31 @@ class ProviderInfo:
         provider: The provider enum value
         name: Human-readable name
         description: Brief description of the provider
-        supports_api: Whether API mode is supported
-        supports_cli: Whether CLI mode is supported
+        cli_command: The CLI command used to invoke this agent
         factory: Factory function to create agents
     """
 
     provider: AgentProvider
     name: str
     description: str
-    supports_api: bool
-    supports_cli: bool
+    cli_command: str
     factory: Callable[[AgentConfig], BaseAgent]
 
 
-# Registry of all available providers
+# Registry of all available providers (CLI-only)
 _PROVIDERS: dict[AgentProvider, ProviderInfo] = {
     AgentProvider.CLAUDE: ProviderInfo(
         provider=AgentProvider.CLAUDE,
         name="Claude",
-        description="Anthropic Claude models (API and CLI)",
-        supports_api=True,
-        supports_cli=True,
+        description="Anthropic Claude via claude CLI",
+        cli_command="claude",
         factory=create_claude_agent,
-    ),
-    AgentProvider.OPENAI: ProviderInfo(
-        provider=AgentProvider.OPENAI,
-        name="OpenAI",
-        description="OpenAI GPT models (API only)",
-        supports_api=True,
-        supports_cli=False,
-        factory=create_openai_agent,
     ),
     AgentProvider.CODEX: ProviderInfo(
         provider=AgentProvider.CODEX,
         name="Codex",
-        description="OpenAI Codex CLI agent (CLI only)",
-        supports_api=False,
-        supports_cli=True,
+        description="OpenAI Codex via codex CLI",
+        cli_command="codex",
         factory=create_codex_agent,
     ),
 }
@@ -69,28 +56,18 @@ def create_agent(config: AgentConfig) -> BaseAgent:
     based on the config.
 
     Args:
-        config: Agent configuration specifying provider, mode, etc.
+        config: Agent configuration specifying provider, etc.
 
     Returns:
         Configured BaseAgent instance
 
     Raises:
-        ValueError: If provider is not supported or mode is invalid
+        ValueError: If provider is not supported
         AgentUnavailableError: If agent cannot be initialized
     """
     provider_info = _PROVIDERS.get(config.provider)
     if not provider_info:
         raise ValueError(f"Unknown agent provider: {config.provider}")
-
-    # Validate mode support
-    if config.mode == AgentMode.API and not provider_info.supports_api:
-        raise ValueError(
-            f"Provider {config.provider.value} does not support API mode. Use CLI mode instead."
-        )
-    if config.mode == AgentMode.CLI and not provider_info.supports_cli:
-        raise ValueError(
-            f"Provider {config.provider.value} does not support CLI mode. Use API mode instead."
-        )
 
     return provider_info.factory(config)
 
@@ -135,7 +112,7 @@ def get_provider_info(provider: AgentProvider) -> ProviderInfo | None:
 def validate_config(config: AgentConfig) -> list[str]:
     """Validate an agent configuration.
 
-    Checks that the provider exists and supports the requested mode.
+    Checks that the provider exists.
 
     Args:
         config: Agent configuration to validate
@@ -148,12 +125,6 @@ def validate_config(config: AgentConfig) -> list[str]:
     provider_info = _PROVIDERS.get(config.provider)
     if not provider_info:
         errors.append(f"Unknown provider: {config.provider}")
-        return errors
-
-    if config.mode == AgentMode.API and not provider_info.supports_api:
-        errors.append(f"Provider {config.provider.value} does not support API mode")
-    if config.mode == AgentMode.CLI and not provider_info.supports_cli:
-        errors.append(f"Provider {config.provider.value} does not support CLI mode")
 
     return errors
 
@@ -189,8 +160,6 @@ __all__ = [
     # Info type
     "ProviderInfo",
     # Agent classes (for type hints)
-    "ClaudeAPIAgent",
     "ClaudeCLIAgent",
     "CodexCLIAgent",
-    "OpenAIAgent",
 ]

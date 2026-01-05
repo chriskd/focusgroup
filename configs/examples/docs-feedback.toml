@@ -12,7 +12,7 @@
 
 [session]
 name = "docs-review"
-mode = "structured"          # Goes through explore → critique → suggest → synthesize
+mode = "structured"          # Goes through explore, critique, suggest, synthesize
 moderator = true             # Synthesize feedback for actionable report
 
 [tool]
@@ -23,26 +23,19 @@ help_args = []               # Not used for docs type
 # Agent 1: Technical writer perspective
 [[agents]]
 provider = "claude"
-mode = "api"
-model = "claude-sonnet-4-20250514"
 name = "Technical-Writer"
 system_prompt = """You are an experienced technical writer who specializes
 in developer documentation. Focus on clarity, completeness, and structure."""
 
 # Agent 2: New user perspective
 [[agents]]
-provider = "openai"
-mode = "api"
-model = "gpt-4o"
+provider = "codex"
 name = "New-User"
-system_prompt = """You are a developer seeing this tool for the first time.
-Focus on what's confusing, what's missing, and what would help you get started."""
+# Codex provides a fresh "new developer" perspective
 
 # Agent 3: AI agent perspective
 [[agents]]
 provider = "claude"
-mode = "api"
-model = "claude-sonnet-4-20250514"
 name = "AI-Agent"
 system_prompt = """You are an AI coding assistant. Focus on whether this
 documentation provides enough context for you to use the tool effectively."""

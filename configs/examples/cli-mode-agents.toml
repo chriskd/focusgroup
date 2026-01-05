@@ -1,5 +1,5 @@
 # =============================================================================
-# CLI Mode Agents - Using actual CLI tools instead of API calls
+# CLI Mode Agents - Using actual CLI tools for authentic agent behavior
 # =============================================================================
 #
 # Use this template when you want:
@@ -11,10 +11,8 @@
 # - claude CLI installed and authenticated (`claude auth login`)
 # - codex CLI installed and authenticated (`codex auth`)
 #
-# Trade-offs vs API mode:
-# - Slower (spawns subprocesses)
-# - Less control (uses CLI defaults)
-# - More authentic (real agent behavior)
+# Note: All focusgroup agents use CLI mode (no API mode). This gives you
+# authentic agent behavior - the same way agents really use tools.
 # =============================================================================
 
 [session]
@@ -32,7 +30,6 @@ help_args = ["--help"]
 # Uses the actual `claude` CLI for authentic behavior
 [[agents]]
 provider = "claude"
-mode = "cli"                 # Invokes `claude` command
 name = "Claude-CLI"
 # Note: system_prompt has limited effect in CLI mode
 
@@ -40,7 +37,6 @@ name = "Claude-CLI"
 # Uses the actual `codex` CLI (OpenAI's coding agent)
 [[agents]]
 provider = "codex"
-mode = "cli"                 # Invokes `codex` command
 name = "Codex-CLI"
 
 [questions]

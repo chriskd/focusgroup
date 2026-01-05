@@ -2,7 +2,7 @@
 
 from focusgroup.agents.base import AgentResponse, BaseAgent
 from focusgroup.agents.registry import create_agent
-from focusgroup.config import AgentConfig, AgentMode, AgentProvider
+from focusgroup.config import AgentConfig, AgentProvider
 
 from .base import ConversationHistory
 
@@ -47,7 +47,7 @@ def create_moderator_agent(
     designed for synthesis and summary tasks.
 
     Args:
-        config: Optional agent config. If not provided, uses Claude API
+        config: Optional agent config. If not provided, uses Claude CLI
             with the default moderator system prompt.
 
     Returns:
@@ -56,7 +56,6 @@ def create_moderator_agent(
     if config is None:
         config = AgentConfig(
             provider=AgentProvider.CLAUDE,
-            mode=AgentMode.API,
             name="Moderator",
             system_prompt=DEFAULT_MODERATOR_PROMPT,
         )
@@ -64,7 +63,6 @@ def create_moderator_agent(
         # If config provided but no system prompt, use default
         config = AgentConfig(
             provider=config.provider,
-            mode=config.mode,
             model=config.model,
             name=config.name or "Moderator",
             system_prompt=DEFAULT_MODERATOR_PROMPT,
@@ -201,7 +199,6 @@ class ModeratorConfig:
     def __init__(
         self,
         provider: AgentProvider = AgentProvider.CLAUDE,
-        mode: AgentMode = AgentMode.API,
         model: str | None = None,
         custom_prompt: str | None = None,
     ) -> None:
@@ -209,12 +206,10 @@ class ModeratorConfig:
 
         Args:
             provider: Which agent provider to use
-            mode: API or CLI mode
             model: Specific model to use
             custom_prompt: Custom system prompt (replaces default)
         """
         self.provider = provider
-        self.mode = mode
         self.model = model
         self.custom_prompt = custom_prompt
 
@@ -226,7 +221,6 @@ class ModeratorConfig:
         """
         return AgentConfig(
             provider=self.provider,
-            mode=self.mode,
             model=self.model,
             name="Moderator",
             system_prompt=self.custom_prompt or DEFAULT_MODERATOR_PROMPT,

@@ -4,7 +4,7 @@ import asyncio
 import time
 from collections.abc import AsyncIterator
 
-from focusgroup.config import AgentConfig, AgentMode, AgentProvider
+from focusgroup.config import AgentConfig, AgentProvider
 
 from .base import (
     AgentError,
@@ -23,9 +23,6 @@ class CodexCLIAgent(BaseAgent):
 
     Invokes `codex` subprocess to get responses. Codex is
     OpenAI's terminal-based coding agent.
-
-    Note: Codex CLI is CLI-only; there's no separate "API mode"
-    since direct API access uses the OpenAI Agents API instead.
     """
 
     def __init__(
@@ -41,8 +38,6 @@ class CodexCLIAgent(BaseAgent):
         """
         super().__init__(config)
         self._timeout = timeout
-        # Override name to indicate CLI mode
-        self._name = f"{config.display_name} (CLI)"
 
     async def respond(self, prompt: str, context: str | None = None) -> AgentResponse:
         """Get a response by invoking Codex CLI.
@@ -96,7 +91,6 @@ class CodexCLIAgent(BaseAgent):
                 content=content,
                 agent_name=self.name,
                 model=self._config.model,
-                mode=AgentMode.CLI,
                 latency_ms=latency_ms,
                 metadata={
                     "provider": "codex-cli",
@@ -194,17 +188,8 @@ def create_codex_agent(config: AgentConfig) -> BaseAgent:
 
     Returns:
         CodexCLIAgent instance
-
-    Note: Codex only supports CLI mode. For OpenAI API access,
-    use the OpenAI Agents API via openai.py instead.
     """
     if config.provider != AgentProvider.CODEX:
         raise ValueError(f"Expected Codex provider, got {config.provider}")
-
-    # Codex is CLI-only
-    if config.mode == AgentMode.API:
-        raise ValueError(
-            "Codex provider only supports CLI mode. Use 'openai' provider for API access."
-        )
 
     return CodexCLIAgent(config)

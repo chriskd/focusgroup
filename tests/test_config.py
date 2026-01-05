@@ -8,7 +8,6 @@ from pydantic import ValidationError
 
 from focusgroup.config import (
     AgentConfig,
-    AgentMode,
     AgentProvider,
     FocusgroupConfig,
     OutputConfig,
@@ -33,15 +32,9 @@ class TestEnums:
         assert SessionMode.DISCUSSION.value == "discussion"
         assert SessionMode.STRUCTURED.value == "structured"
 
-    def test_agent_mode_values(self):
-        """Agent modes should have expected values."""
-        assert AgentMode.API.value == "api"
-        assert AgentMode.CLI.value == "cli"
-
     def test_agent_provider_values(self):
         """Agent providers should have expected values."""
         assert AgentProvider.CLAUDE.value == "claude"
-        assert AgentProvider.OPENAI.value == "openai"
         assert AgentProvider.CODEX.value == "codex"
 
 
@@ -52,7 +45,6 @@ class TestAgentConfig:
         """Agent config with only required fields."""
         config = AgentConfig(provider=AgentProvider.CLAUDE)
         assert config.provider == AgentProvider.CLAUDE
-        assert config.mode == AgentMode.API  # default
         assert config.model is None
         assert config.name is None
         assert config.system_prompt is None
@@ -60,15 +52,14 @@ class TestAgentConfig:
     def test_full_agent_config(self):
         """Agent config with all fields."""
         config = AgentConfig(
-            provider=AgentProvider.OPENAI,
-            mode=AgentMode.API,
-            model="gpt-4o",
-            name="GPT Expert",
+            provider=AgentProvider.CODEX,
+            model="o3-mini",
+            name="Codex Expert",
             system_prompt="You are a helpful assistant.",
         )
-        assert config.provider == AgentProvider.OPENAI
-        assert config.model == "gpt-4o"
-        assert config.name == "GPT Expert"
+        assert config.provider == AgentProvider.CODEX
+        assert config.model == "o3-mini"
+        assert config.name == "Codex Expert"
 
     def test_display_name_with_custom_name(self):
         """Display name should use custom name when set."""
@@ -82,8 +73,8 @@ class TestAgentConfig:
 
     def test_display_name_provider_only(self):
         """Display name should fall back to provider."""
-        config = AgentConfig(provider=AgentProvider.OPENAI)
-        assert config.display_name == "openai"
+        config = AgentConfig(provider=AgentProvider.CODEX)
+        assert config.display_name == "codex"
 
 
 class TestToolConfig:
@@ -221,7 +212,6 @@ command = "mx"
 
 [[agents]]
 provider = "claude"
-mode = "api"
 model = "claude-sonnet-4-20250514"
 
 [questions]
@@ -252,12 +242,8 @@ provider = "claude"
 name = "Claude Expert"
 
 [[agents]]
-provider = "openai"
-model = "gpt-4o"
-
-[[agents]]
 provider = "codex"
-mode = "cli"
+model = "o3-mini"
 
 [questions]
 rounds = ["Evaluate this tool"]
@@ -266,10 +252,9 @@ rounds = ["Evaluate this tool"]
         config_file.write_text(config_content)
 
         config = load_config(config_file)
-        assert len(config.agents) == 3
+        assert len(config.agents) == 2
         assert config.agents[0].name == "Claude Expert"
-        assert config.agents[1].model == "gpt-4o"
-        assert config.agents[2].mode == AgentMode.CLI
+        assert config.agents[1].model == "o3-mini"
 
     def test_load_config_file_not_found(self, tmp_path: Path):
         """Loading non-existent file should raise FileNotFoundError."""
@@ -308,7 +293,6 @@ class TestAgentPresets:
         preset_content = """
 [agent]
 provider = "claude"
-mode = "api"
 model = "claude-sonnet-4-20250514"
 name = "Sonnet Expert"
 system_prompt = "You are a CLI tool expert."
@@ -325,15 +309,15 @@ system_prompt = "You are a CLI tool expert."
     def test_load_agent_preset_without_wrapper(self, tmp_path: Path):
         """Load preset without [agent] wrapper."""
         preset_content = """
-provider = "openai"
-model = "gpt-4o"
+provider = "codex"
+model = "o3-mini"
 """
-        preset_file = tmp_path / "gpt4.toml"
+        preset_file = tmp_path / "codex.toml"
         preset_file.write_text(preset_content)
 
         preset = load_agent_preset(preset_file)
-        assert preset.provider == AgentProvider.OPENAI
-        assert preset.model == "gpt-4o"
+        assert preset.provider == AgentProvider.CODEX
+        assert preset.model == "o3-mini"
 
 
 class TestConfigDirectories:
@@ -367,7 +351,7 @@ class TestConfigDirectories:
 
         # Create some preset files
         (agents_dir / "claude.toml").write_text('provider = "claude"')
-        (agents_dir / "openai.toml").write_text('provider = "openai"')
+        (agents_dir / "codex.toml").write_text('provider = "codex"')
         (agents_dir / "not_toml.txt").write_text("ignored")
 
         monkeypatch.setattr("focusgroup.config.get_agents_dir", lambda: agents_dir)
@@ -376,4 +360,4 @@ class TestConfigDirectories:
         names = [name for name, _ in presets]
         assert len(presets) == 2
         assert "claude" in names
-        assert "openai" in names
+        assert "codex" in names

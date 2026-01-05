@@ -70,8 +70,8 @@ name = "Claude Expert"
 model = "claude-sonnet-4-20250514"
 
 [[agents]]
-provider = "openai"
-model = "gpt-4o"
+provider = "codex"
+name = "Codex Expert"
 
 [questions]
 rounds = [
@@ -93,7 +93,7 @@ format = "json"
         assert "single" in result.stdout
         assert "enabled" in result.stdout  # moderator
         assert "Claude Expert" in result.stdout
-        assert "gpt-4o" in result.stdout
+        assert "Codex Expert" in result.stdout
         assert "How usable" in result.stdout
         assert "2" in result.stdout  # Two questions
 

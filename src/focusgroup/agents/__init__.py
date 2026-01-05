@@ -1,13 +1,13 @@
-"""Agent implementations for different LLM providers.
+"""Agent implementations for CLI-based LLM providers.
 
-This module provides a unified interface for interacting with various
-LLM agents (Claude, OpenAI, Codex) in both API and CLI modes.
+This module provides a unified interface for interacting with
+LLM agents (Claude, Codex) via their CLI tools.
 
 Quick usage:
     from focusgroup.agents import create_agent
-    from focusgroup.config import AgentConfig, AgentProvider, AgentMode
+    from focusgroup.config import AgentConfig, AgentProvider
 
-    config = AgentConfig(provider=AgentProvider.CLAUDE, mode=AgentMode.API)
+    config = AgentConfig(provider=AgentProvider.CLAUDE)
     agent = create_agent(config)
     response = await agent.respond("Your question here")
 """
@@ -22,9 +22,8 @@ from .base import (
     BaseAgent,
     StreamChunk,
 )
-from .claude import ClaudeAPIAgent, ClaudeCLIAgent, create_claude_agent
+from .claude import ClaudeCLIAgent, create_claude_agent
 from .codex import CodexCLIAgent, create_codex_agent
-from .openai_agent import OpenAIAgent, create_openai_agent
 from .registry import (
     ProviderInfo,
     create_agent,
@@ -50,12 +49,9 @@ __all__ = [
     "create_agent",
     "create_agents",
     "create_claude_agent",
-    "create_openai_agent",
     "create_codex_agent",
     # Agent implementations
-    "ClaudeAPIAgent",
     "ClaudeCLIAgent",
-    "OpenAIAgent",
     "CodexCLIAgent",
     # Registry
     "ProviderInfo",

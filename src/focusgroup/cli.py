@@ -13,7 +13,6 @@ from rich.table import Table
 from focusgroup import __version__
 from focusgroup.config import (
     AgentConfig,
-    AgentMode,
     AgentProvider,
     FocusgroupConfig,
     OutputConfig,
@@ -141,21 +140,15 @@ def ask(
     ] = "text",
     provider: Annotated[
         str,
-        typer.Option("--provider", "-p", help="Agent provider: claude, openai, or codex"),
+        typer.Option("--provider", "-p", help="Agent provider: claude or codex"),
     ] = "claude",
-    cli_mode: Annotated[
-        bool,
-        typer.Option("--cli", help="Use CLI mode instead of API mode"),
-    ] = False,
     explore: Annotated[
         bool,
         typer.Option("--explore", "-e", help="Enable exploration (agents can run tool)"),
     ] = False,
     synthesize_with: Annotated[
         str | None,
-        typer.Option(
-            "--synthesize-with", "-s", help="Moderator: codex, claude, claude-cli, openai"
-        ),
+        typer.Option("--synthesize-with", "-s", help="Moderator agent: claude or codex"),
     ] = None,
 ) -> None:
     """Quick ad-hoc query to an agent panel about a tool.
@@ -175,7 +168,6 @@ def ask(
             agents,
             output,
             provider,
-            cli_mode,
             explore,
             synthesize_with,
         )
@@ -186,7 +178,7 @@ def _parse_synthesize_with(synthesize_with: str | None) -> AgentConfig | None:
     """Parse --synthesize-with into an AgentConfig.
 
     Args:
-        synthesize_with: String like 'codex', 'claude', 'claude-cli', 'openai'
+        synthesize_with: String like 'codex' or 'claude'
 
     Returns:
         AgentConfig for the moderator, or None if not specified
@@ -196,23 +188,19 @@ def _parse_synthesize_with(synthesize_with: str | None) -> AgentConfig | None:
 
     synthesize_with = synthesize_with.lower().strip()
 
-    # Map string to provider/mode
+    # Map string to provider
     provider_map = {
-        "codex": (AgentProvider.CODEX, AgentMode.CLI),
-        "claude": (AgentProvider.CLAUDE, AgentMode.API),
-        "claude-cli": (AgentProvider.CLAUDE, AgentMode.CLI),
-        "openai": (AgentProvider.OPENAI, AgentMode.API),
+        "codex": AgentProvider.CODEX,
+        "claude": AgentProvider.CLAUDE,
     }
 
     if synthesize_with not in provider_map:
         console.print(f"[red]Unknown synthesizer: {synthesize_with}[/red]")
-        console.print("Valid options: codex, claude, claude-cli, openai")
+        console.print("Valid options: claude, codex")
         raise typer.Exit(1)
 
-    provider, mode = provider_map[synthesize_with]
     return AgentConfig(
-        provider=provider,
-        mode=mode,
+        provider=provider_map[synthesize_with],
         name="Moderator",
     )
 
@@ -225,7 +213,6 @@ async def _ask_impl(
     num_agents: int,
     output_format: str,
     provider_str: str,
-    cli_mode: bool = False,
     explore: bool = False,
     synthesize_with: str | None = None,
 ) -> None:
@@ -254,20 +241,13 @@ async def _ask_impl(
             prov = AgentProvider(provider_str.lower())
         except ValueError:
             console.print(f"[red]Unknown provider: {provider_str}[/red]")
-            console.print("Valid options: claude, openai, codex")
+            console.print("Valid options: claude, codex")
             raise typer.Exit(1) from None
-
-        # Determine mode: Codex is always CLI, others use --cli flag or API
-        if prov == AgentProvider.CODEX:
-            mode = AgentMode.CLI
-        else:
-            mode = AgentMode.CLI if cli_mode else AgentMode.API
 
         # Create N agents with different names
         agent_configs = [
             AgentConfig(
                 provider=prov,
-                mode=mode,
                 name=f"Agent-{i + 1}",
             )
             for i in range(num_agents)
@@ -372,9 +352,8 @@ def _show_session_plan(config: FocusgroupConfig) -> None:
 
     console.print(f"\n[bold]Agents ({len(config.agents)}):[/bold]")
     for agent in config.agents:
-        mode_str = f"({agent.mode.value})"
         model_str = f"[{agent.model}]" if agent.model else ""
-        console.print(f"  - {agent.display_name} {mode_str} {model_str}")
+        console.print(f"  - {agent.display_name} {model_str}")
 
     console.print(f"\n[bold]Questions ({len(config.questions.rounds)}):[/bold]")
     for i, q in enumerate(config.questions.rounds):
@@ -471,7 +450,6 @@ def agents_list(
             try:
                 preset = load_agent_preset(path)
                 console.print(f"  Provider: {preset.provider.value}")
-                console.print(f"  Mode: {preset.mode.value}")
                 if preset.model:
                     console.print(f"  Model: {preset.model}")
                 if preset.system_prompt:
@@ -483,12 +461,12 @@ def agents_list(
         table = Table(title="Agent Presets")
         table.add_column("Name", style="cyan")
         table.add_column("Provider")
-        table.add_column("Mode")
+        table.add_column("Model")
 
         for name, path in presets:
             try:
                 preset = load_agent_preset(path)
-                table.add_row(name, preset.provider.value, preset.mode.value)
+                table.add_row(name, preset.provider.value, preset.model or "-")
             except Exception:
                 table.add_row(name, "[red]error[/red]", "")
 
@@ -516,7 +494,6 @@ def agents_show(
 
     console.print(f"\n[bold]Agent Preset: {name}[/bold]\n")
     console.print(f"Provider: [cyan]{preset.provider.value}[/cyan]")
-    console.print(f"Mode: {preset.mode.value}")
     if preset.model:
         console.print(f"Model: {preset.model}")
     if preset.name:

@@ -21,15 +21,12 @@ command = "git"              # The CLI tool to evaluate
 
 [[agents]]
 provider = "claude"
-mode = "api"                 # Direct API call (faster than CLI mode)
 name = "Claude"
 # model defaults to claude-sonnet-4-20250514
 
 [[agents]]
-provider = "openai"
-mode = "api"
-model = "gpt-4o"
-name = "GPT-4o"
+provider = "codex"
+name = "Codex"
 
 [questions]
 rounds = [

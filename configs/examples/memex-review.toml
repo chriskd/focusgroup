@@ -3,9 +3,8 @@
 # =============================================================================
 #
 # Use this template when you want:
-# - Comprehensive, phased evaluation (explore → critique → suggest → synthesize)
-# - Multiple providers for diverse perspectives
-# - Both API and CLI agents for different viewpoints
+# - Comprehensive, phased evaluation (explore, critique, suggest, synthesize)
+# - Multiple CLI agents for diverse perspectives
 # - A complete feedback report
 #
 # This is the most thorough evaluation template, ideal for:
@@ -24,37 +23,22 @@ type = "cli"
 command = "mx"               # The memex CLI tool
 help_args = ["--help"]
 
-# Agent 1: Claude via API
-# Controlled environment, custom parameters
+# Agent 1: Claude - primary reviewer
 [[agents]]
 provider = "claude"
-mode = "api"
-model = "claude-sonnet-4-20250514"
-name = "Claude (API)"
+name = "Claude"
 
-# Agent 2: Claude via CLI
-# Authentic behavior, full tool access
-[[agents]]
-provider = "claude"
-mode = "cli"
-name = "Claude (CLI)"
-# Uses the actual `claude` CLI for authentic behavior
-
-# Agent 3: OpenAI GPT-4o
-# Alternative perspective from a different model family
-[[agents]]
-provider = "openai"
-mode = "api"
-model = "gpt-4o"
-name = "GPT-4o"
-
-# Agent 4: Codex
-# Code-focused agent via CLI
+# Agent 2: Codex - code-focused perspective
 [[agents]]
 provider = "codex"
-mode = "cli"
 name = "Codex"
-# Uses the actual `codex` CLI
+
+# Agent 3: Claude with different focus
+[[agents]]
+provider = "claude"
+name = "Claude-UX"
+system_prompt = """You are a UX researcher who studies how AI agents
+interact with tools. Focus on discoverability and error prevention."""
 
 [questions]
 # In structured mode, questions guide the overall focus

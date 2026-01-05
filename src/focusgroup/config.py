@@ -16,18 +16,10 @@ class SessionMode(str, Enum):
     STRUCTURED = "structured"  # Phases: explore, critique, suggest, synthesize
 
 
-class AgentMode(str, Enum):
-    """How to invoke the agent."""
-
-    API = "api"  # Direct API call
-    CLI = "cli"  # Invoke actual CLI tool (claude, codex, etc.)
-
-
 class AgentProvider(str, Enum):
-    """Supported agent providers."""
+    """Supported agent providers (CLI-only)."""
 
     CLAUDE = "claude"
-    OPENAI = "openai"
     CODEX = "codex"
 
 
@@ -35,7 +27,6 @@ class AgentConfig(BaseModel):
     """Configuration for a single agent in the panel."""
 
     provider: AgentProvider
-    mode: AgentMode = AgentMode.API
     model: str | None = None
     name: str | None = None  # Display name, defaults to provider
     system_prompt: str | None = None

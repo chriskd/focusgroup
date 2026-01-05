@@ -17,10 +17,9 @@ mode = "discussion"          # Agents see and respond to each other
 moderator = true             # Enable synthesis at the end
 
 # Optional: Customize the moderator agent
-# If omitted, uses Claude API with default synthesis prompt
+# If omitted, uses Claude as default moderator
 [session.moderator_agent]
 provider = "claude"
-mode = "api"                 # Use "cli" for Claude CLI as moderator
 
 [tool]
 type = "cli"
@@ -30,27 +29,20 @@ help_args = ["--help"]
 # Agent 1: DevOps perspective
 [[agents]]
 provider = "claude"
-mode = "api"
-name = "Claude-Sonnet"
-model = "claude-sonnet-4-20250514"
+name = "Claude-DevOps"
 system_prompt = """You are an experienced DevOps engineer who values simplicity
 and reliability. Focus on operational concerns."""
 
-# Agent 2: Developer perspective (using OpenAI for diversity)
+# Agent 2: Developer perspective (using Codex for diversity)
 [[agents]]
-provider = "openai"
-mode = "api"
-name = "GPT-4o"
-model = "gpt-4o"
-system_prompt = """You are a developer who frequently uses CLI tools.
-Focus on developer experience and ergonomics."""
+provider = "codex"
+name = "Codex-Developer"
+# Codex brings a code-focused perspective
 
 # Agent 3: UX/Agent perspective
 [[agents]]
 provider = "claude"
-mode = "api"
-name = "Claude-Opus"
-model = "claude-opus-4-20250514"
+name = "Claude-UX"
 system_prompt = """You are a UX researcher who studies how AI agents
 interact with tools. Focus on discoverability and error prevention."""
 

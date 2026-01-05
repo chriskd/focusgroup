@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Protocol, runtime_checkable
 
-from focusgroup.config import AgentConfig, AgentMode
+from focusgroup.config import AgentConfig
 
 
 @dataclass
@@ -17,9 +17,8 @@ class AgentResponse:
         content: The text response from the agent
         agent_name: Display name of the agent that responded
         model: Specific model used (if known)
-        mode: Whether API or CLI mode was used
-        tokens_in: Input tokens used (if available from API)
-        tokens_out: Output tokens used (if available from API)
+        tokens_in: Input tokens used (if available)
+        tokens_out: Output tokens used (if available)
         latency_ms: Response time in milliseconds
         timestamp: When the response was received
         metadata: Additional provider-specific metadata
@@ -28,7 +27,6 @@ class AgentResponse:
     content: str
     agent_name: str
     model: str | None = None
-    mode: AgentMode = AgentMode.API
     tokens_in: int | None = None
     tokens_out: int | None = None
     latency_ms: float | None = None
