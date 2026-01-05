@@ -1,6 +1,7 @@
 """CLI interface for focusgroup."""
 
 import asyncio
+import subprocess
 from pathlib import Path
 from typing import Annotated
 
@@ -44,6 +45,58 @@ app.add_typer(logs_app, name="logs")
 console = Console()
 
 
+def resolve_context(context: str) -> str:
+    """Resolve context from a file path or shell command.
+
+    Args:
+        context: Either "@path/to/file" to read a file, or a shell command to run
+
+    Returns:
+        The file contents or command output
+
+    Raises:
+        typer.Exit: If file not found or command fails
+    """
+    if context.startswith("@"):
+        # Read from file
+        file_path = Path(context[1:]).expanduser()
+        if not file_path.exists():
+            console.print(f"[red]Context file not found: {file_path}[/red]")
+            raise typer.Exit(1)
+        try:
+            return file_path.read_text()
+        except Exception as e:
+            console.print(f"[red]Failed to read context file: {e}[/red]")
+            raise typer.Exit(1) from None
+    else:
+        # Run as shell command
+        try:
+            result = subprocess.run(
+                context,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            # Combine stdout and stderr (some tools output help to stderr)
+            output = result.stdout
+            if result.stderr and not output:
+                output = result.stderr
+            elif result.stderr:
+                output = f"{output}\n{result.stderr}"
+
+            if not output.strip():
+                console.print("[yellow]Warning: Context command produced no output[/yellow]")
+
+            return output
+        except subprocess.TimeoutExpired:
+            console.print("[red]Context command timed out after 30s[/red]")
+            raise typer.Exit(1) from None
+        except Exception as e:
+            console.print(f"[red]Failed to run context command: {e}[/red]")
+            raise typer.Exit(1) from None
+
+
 def version_callback(value: bool) -> None:
     """Print version and exit."""
     if value:
@@ -64,8 +117,16 @@ def main(
 
 @app.command()
 def ask(
-    tool: Annotated[str, typer.Argument(help="Tool command to get feedback on (e.g., 'mx')")],
+    tool: Annotated[str, typer.Argument(help="Tool name for session labeling (e.g., 'mx')")],
     question: Annotated[str, typer.Argument(help="Question to ask the agent panel")],
+    context: Annotated[
+        str,
+        typer.Option(
+            "--context",
+            "-x",
+            help="Context command or file: 'mytool --help' or '@README.md'",
+        ),
+    ],
     config: Annotated[
         Path | None,
         typer.Option("--config", "-c", help="Path to config file for agent settings"),
@@ -97,10 +158,26 @@ def ask(
         ),
     ] = None,
 ) -> None:
-    """Quick ad-hoc query to an agent panel about a tool."""
+    """Quick ad-hoc query to an agent panel about a tool.
+
+    Provide context via --context: either a shell command to run (e.g., 'mytool --help')
+    or a file path prefixed with @ (e.g., '@README.md').
+    """
+    # Resolve context upfront (file or command)
+    resolved_context = resolve_context(context)
+
     asyncio.run(
         _ask_impl(
-            tool, question, config, agents, output, provider, cli_mode, explore, synthesize_with
+            tool,
+            question,
+            resolved_context,
+            config,
+            agents,
+            output,
+            provider,
+            cli_mode,
+            explore,
+            synthesize_with,
         )
     )
 
@@ -143,6 +220,7 @@ def _parse_synthesize_with(synthesize_with: str | None) -> AgentConfig | None:
 async def _ask_impl(
     tool: str,
     question: str,
+    context: str,
     config_path: Path | None,
     num_agents: int,
     output_format: str,
@@ -208,11 +286,11 @@ async def _ask_impl(
             output=OutputConfig(format=output_format, save_log=True),  # type: ignore
         )
 
-    # Create the tool wrapper
+    # Create the tool wrapper (still used for exploration mode)
     cli_tool = create_cli_tool(tool)
 
-    # Run the session
-    orchestrator = SessionOrchestrator(fg_config, cli_tool)
+    # Run the session with explicit context
+    orchestrator = SessionOrchestrator(fg_config, cli_tool, context=context)
 
     with Progress(
         SpinnerColumn(),

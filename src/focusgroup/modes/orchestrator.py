@@ -43,17 +43,21 @@ class SessionOrchestrator:
         config: FocusgroupConfig,
         tool: Tool,
         storage: SessionStorage | None = None,
+        context: str | None = None,
     ) -> None:
         """Initialize the session orchestrator.
 
         Args:
             config: Complete session configuration
-            tool: The tool being evaluated
+            tool: The tool being evaluated (used for exploration mode)
             storage: Optional storage backend (defaults to file storage)
+            context: Explicit context string to provide to agents.
+                     If provided, skips automatic tool.get_help() call.
         """
         self._config = config
         self._tool = tool
         self._storage = storage or get_default_storage()
+        self._explicit_context = context
 
         # Will be initialized in setup()
         self._agents: list[BaseAgent] = []
@@ -99,14 +103,15 @@ class SessionOrchestrator:
         self._agents = create_agents(self._config.agents)
         self._session.agent_count = len(self._agents)
 
-        # Fetch tool help for context
-        try:
-            self._tool_help = await self._tool.get_help()
-        except Exception as e:
-            raise SessionModeError(
-                f"Failed to get tool help: {e}",
-                mode_name="setup",
-            ) from e
+        # Only fetch tool help if no explicit context was provided
+        if self._explicit_context is None:
+            try:
+                self._tool_help = await self._tool.get_help()
+            except Exception as e:
+                raise SessionModeError(
+                    f"Failed to get tool help: {e}",
+                    mode_name="setup",
+                ) from e
 
         # Create the appropriate session mode
         self._mode = self._create_mode()
@@ -175,9 +180,15 @@ class SessionOrchestrator:
                 mode_name="orchestrator",
             )
 
-        # Get tool context string (with exploration instructions if enabled)
+        # Get context for agents
+        # Priority: explicit context > tool help > None
         exploration = self._config.session.exploration
-        if self._tool_help:
+        if self._explicit_context is not None:
+            # Use explicit context, optionally add exploration instructions
+            context = self._explicit_context
+            if exploration:
+                context = self._add_exploration_instructions(context)
+        elif self._tool_help:
             context = self._tool_help.to_context_string(exploration=exploration)
         else:
             context = None
@@ -225,6 +236,36 @@ class SessionOrchestrator:
         """
         mode = self._config.session.mode
         return mode in (SessionMode.DISCUSSION, SessionMode.STRUCTURED)
+
+    def _add_exploration_instructions(self, context: str) -> str:
+        """Add exploration instructions to explicit context.
+
+        Args:
+            context: The base context string
+
+        Returns:
+            Context with exploration instructions appended
+        """
+        tool_name = self._tool.name
+        instructions = f"""
+
+## Interactive Exploration
+
+**IMPORTANT**: You can and should run `{tool_name}` commands to explore this tool!
+
+### How to Explore
+1. Run example commands to see actual output
+2. Test edge cases and error handling
+3. Explore subcommands that interest you
+
+### What to Evaluate
+- Does the output make sense? Is it parseable?
+- Are error messages helpful?
+- Does the tool behave as documented?
+- What would make it easier for you as an AI agent to use?
+
+Run commands now to form your opinion based on real usage, not just documentation."""
+        return context + instructions
 
     def _record_round(
         self,

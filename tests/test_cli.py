@@ -344,7 +344,10 @@ class TestAskCommand:
 
     def test_ask_invalid_provider(self):
         """Ask with invalid provider shows error."""
-        result = runner.invoke(app, ["ask", "mx", "What's good?", "--provider", "invalid"])
+        result = runner.invoke(
+            app,
+            ["ask", "mx", "What's good?", "--context", "echo test", "--provider", "invalid"],
+        )
         assert result.exit_code == 1
         assert "Unknown provider" in result.stdout
 
@@ -352,10 +355,17 @@ class TestAskCommand:
     def test_ask_invokes_async(self, mock_run):
         """Ask command invokes async implementation."""
         mock_run.return_value = None
-        runner.invoke(app, ["ask", "mx", "What's good?"])
+        runner.invoke(app, ["ask", "mx", "What's good?", "--context", "echo test"])
 
         # Should have called asyncio.run with the async implementation
         mock_run.assert_called_once()
+
+    def test_ask_requires_context(self):
+        """Ask command requires --context option."""
+        result = runner.invoke(app, ["ask", "mx", "What's good?"])
+        assert result.exit_code == 2
+        # Typer puts required option error in output (stdout or stderr combined)
+        assert "--context" in result.output
 
 
 class TestConfigValidation:
