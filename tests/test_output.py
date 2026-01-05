@@ -6,12 +6,15 @@ from pathlib import Path
 
 import pytest
 
-from focusgroup.output.json_writer import JsonWriter, format_json
-from focusgroup.output.markdown import (
+from focusgroup.output import (
+    JsonWriter,
     MarkdownWriter,
     TextWriter,
+    format_json,
     format_markdown,
+    format_session,
     format_text,
+    get_formatter,
 )
 from focusgroup.storage.session_log import AgentResponse, QuestionRound, SessionLog
 
@@ -476,3 +479,100 @@ class TestJsonRoundTrip:
         data1 = json.loads(output1)
         data2 = json.loads(output2)
         assert data1 == data2
+
+
+class TestGetFormatter:
+    """Test get_formatter factory function."""
+
+    def test_get_json_formatter(self):
+        """Get JSON formatter."""
+        formatter = get_formatter("json")
+        assert isinstance(formatter, JsonWriter)
+
+    def test_get_markdown_formatter(self):
+        """Get Markdown formatter."""
+        formatter = get_formatter("markdown")
+        assert isinstance(formatter, MarkdownWriter)
+
+    def test_get_md_alias(self):
+        """Get Markdown formatter via 'md' alias."""
+        formatter = get_formatter("md")
+        assert isinstance(formatter, MarkdownWriter)
+
+    def test_get_text_formatter(self):
+        """Get Text formatter."""
+        formatter = get_formatter("text")
+        assert isinstance(formatter, TextWriter)
+
+    def test_get_txt_alias(self):
+        """Get Text formatter via 'txt' alias."""
+        formatter = get_formatter("txt")
+        assert isinstance(formatter, TextWriter)
+
+    def test_case_insensitive(self):
+        """Format type is case insensitive."""
+        assert isinstance(get_formatter("JSON"), JsonWriter)
+        assert isinstance(get_formatter("MARKDOWN"), MarkdownWriter)
+        assert isinstance(get_formatter("Text"), TextWriter)
+
+    def test_invalid_format_raises(self):
+        """Invalid format type raises ValueError."""
+        with pytest.raises(ValueError, match="Unknown format type"):
+            get_formatter("invalid")
+
+    def test_invalid_format_shows_valid_options(self):
+        """Error message shows valid options."""
+        with pytest.raises(ValueError, match="json"):
+            get_formatter("invalid")
+
+
+class TestFormatSession:
+    """Test format_session convenience function."""
+
+    def test_format_session_text(self, sample_session: SessionLog):
+        """format_session with text format."""
+        output = format_session(sample_session, "text")
+        assert "Test Focusgroup" in output
+        # Text format uses === separators
+        assert "=" * 80 in output
+
+    def test_format_session_json(self, sample_session: SessionLog):
+        """format_session with JSON format."""
+        output = format_session(sample_session, "json")
+        data = json.loads(output)
+        assert data["tool"] == "mx"
+
+    def test_format_session_markdown(self, sample_session: SessionLog):
+        """format_session with Markdown format."""
+        output = format_session(sample_session, "markdown")
+        assert "# Test Focusgroup" in output
+
+    def test_format_session_default_text(self, sample_session: SessionLog):
+        """format_session defaults to text format."""
+        output = format_session(sample_session)
+        # Text format uses === separators
+        assert "=" * 80 in output
+
+
+class TestOutputFormatterProtocol:
+    """Test that formatters satisfy the OutputFormatter protocol."""
+
+    def test_json_writer_has_format_method(self):
+        """JsonWriter has format method required by protocol."""
+        writer = JsonWriter()
+        assert hasattr(writer, "format")
+        assert callable(writer.format)
+
+    def test_markdown_writer_has_write_method(self):
+        """MarkdownWriter has write method required by protocol."""
+        writer = MarkdownWriter()
+        assert hasattr(writer, "write")
+        assert callable(writer.write)
+
+    def test_text_writer_has_both_methods(self):
+        """TextWriter has both required protocol methods."""
+        writer = TextWriter()
+        assert hasattr(writer, "format")
+        assert hasattr(writer, "write")
+        assert callable(writer.format)
+        assert callable(writer.write)
