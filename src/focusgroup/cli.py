@@ -29,10 +29,37 @@ from focusgroup.output import format_session, get_formatter
 from focusgroup.storage.session_log import get_default_storage
 from focusgroup.tools.cli import create_cli_tool
 
+MAIN_EPILOG = """
+[bold]Providers:[/bold]
+
+  Focusgroup supports two agent providers:
+
+  [bold]claude[/bold]  - Uses Claude CLI (claude command)
+           Requires: claude CLI installed and configured
+           Modes: Can act as panel agent or moderator
+
+  [bold]codex[/bold]   - Uses OpenAI Codex CLI (codex command)
+           Requires: codex CLI installed and configured
+           Modes: Can act as panel agent or moderator
+
+[bold]Quick Reference:[/bold]
+
+  Provider  │ Exploration  │ Synthesis  │ Prerequisites
+  ──────────┼──────────────┼────────────┼────────────────────────
+  claude    │ ✓            │ ✓          │ claude CLI
+  codex     │ ✓            │ ✓          │ codex CLI
+
+[bold]Modes:[/bold]
+
+  --explore (-e)       Let agents run the tool interactively
+  --synthesize-with    Add a moderator to synthesize responses
+"""
+
 app = typer.Typer(
     name="focusgroup",
     help="Gather feedback from multiple LLM agents on tools designed for agent use.",
     no_args_is_help=True,
+    epilog=MAIN_EPILOG,
 )
 
 agents_app = typer.Typer(help="Manage agent presets.")
@@ -114,7 +141,30 @@ def main(
     pass
 
 
-@app.command()
+ASK_EXAMPLES = """
+[bold]Examples:[/bold]
+
+  Basic query with command context:
+  [dim]$ focusgroup ask mx "Is this help output clear?" -x "mx --help"[/dim]
+
+  Query with file context:
+  [dim]$ focusgroup ask mylib "What's missing from these docs?" -x "@README.md"[/dim]
+
+  Exploration mode (agents can run the tool):
+  [dim]$ focusgroup ask mx "Try common workflows" -x "mx --help" --explore[/dim]
+
+  With synthesis from a moderator:
+  [dim]$ focusgroup ask mx "Rate the UX" -x "mx --help" --synthesize-with claude[/dim]
+
+  Use a different provider:
+  [dim]$ focusgroup ask tool "Review this" -x "@docs.md" --provider codex[/dim]
+
+  Combine multiple options:
+  [dim]$ focusgroup ask mx "Full review" -x "mx --help" -e -s claude -n 5[/dim]
+"""
+
+
+@app.command(epilog=ASK_EXAMPLES)
 def ask(
     tool: Annotated[str, typer.Argument(help="Tool name for session labeling (e.g., 'mx')")],
     question: Annotated[str, typer.Argument(help="Question to ask the agent panel")],
@@ -302,7 +352,24 @@ async def _ask_impl(
     console.print(f"\n[dim]Session saved: {session_path}[/dim]")
 
 
-@app.command()
+RUN_EXAMPLES = """
+[bold]Examples:[/bold]
+
+  Run a session from config:
+  [dim]$ focusgroup run session.toml[/dim]
+
+  Preview what would run (dry run):
+  [dim]$ focusgroup run session.toml --dry-run[/dim]
+
+  Save output to a directory:
+  [dim]$ focusgroup run session.toml --output-dir ./results[/dim]
+
+  Override output format:
+  [dim]$ focusgroup run session.toml --format json[/dim]
+"""
+
+
+@app.command(epilog=RUN_EXAMPLES)
 def run(
     config_file: Annotated[
         Path,
@@ -428,8 +495,18 @@ async def _collect_results(orchestrator: SessionOrchestrator) -> list:
 
 # --- Agents subcommand group ---
 
+AGENTS_LIST_EXAMPLES = """
+[bold]Examples:[/bold]
 
-@agents_app.command("list")
+  List all presets:
+  [dim]$ focusgroup agents list[/dim]
+
+  Show detailed information:
+  [dim]$ focusgroup agents list --verbose[/dim]
+"""
+
+
+@agents_app.command("list", epilog=AGENTS_LIST_EXAMPLES)
 def agents_list(
     verbose: Annotated[
         bool,
@@ -473,7 +550,18 @@ def agents_list(
         console.print(table)
 
 
-@agents_app.command("show")
+AGENTS_SHOW_EXAMPLES = """
+[bold]Examples:[/bold]
+
+  Show preset details:
+  [dim]$ focusgroup agents show ux-expert[/dim]
+
+  Show preset with custom system prompt:
+  [dim]$ focusgroup agents show security-reviewer[/dim]
+"""
+
+
+@agents_app.command("show", epilog=AGENTS_SHOW_EXAMPLES)
 def agents_show(
     name: Annotated[str, typer.Argument(help="Agent preset name")],
 ) -> None:
@@ -504,8 +592,21 @@ def agents_show(
 
 # --- Logs subcommand group ---
 
+LOGS_LIST_EXAMPLES = """
+[bold]Examples:[/bold]
 
-@logs_app.command("list")
+  Show recent sessions:
+  [dim]$ focusgroup logs list[/dim]
+
+  Show more sessions:
+  [dim]$ focusgroup logs list --limit 25[/dim]
+
+  Filter by tool:
+  [dim]$ focusgroup logs list --tool mx[/dim]
+"""
+
+
+@logs_app.command("list", epilog=LOGS_LIST_EXAMPLES)
 def logs_list(
     limit: Annotated[
         int,
@@ -548,7 +649,21 @@ def logs_list(
     console.print(table)
 
 
-@logs_app.command("show")
+LOGS_SHOW_EXAMPLES = """
+[bold]Examples:[/bold]
+
+  Show session details:
+  [dim]$ focusgroup logs show 20260105-abc123[/dim]
+
+  Show as JSON:
+  [dim]$ focusgroup logs show 20260105-abc123 --format json[/dim]
+
+  Show as markdown:
+  [dim]$ focusgroup logs show 20260105-abc123 --format markdown[/dim]
+"""
+
+
+@logs_app.command("show", epilog=LOGS_SHOW_EXAMPLES)
 def logs_show(
     session_id: Annotated[str, typer.Argument(help="Session ID to show")],
     format: Annotated[
@@ -572,7 +687,21 @@ def logs_show(
     console.print(formatted)
 
 
-@logs_app.command("export")
+LOGS_EXPORT_EXAMPLES = """
+[bold]Examples:[/bold]
+
+  Export to markdown (default):
+  [dim]$ focusgroup logs export 20260105-abc123[/dim]
+
+  Export to JSON:
+  [dim]$ focusgroup logs export 20260105-abc123 --format json[/dim]
+
+  Export to specific file:
+  [dim]$ focusgroup logs export 20260105-abc123 -o report.md[/dim]
+"""
+
+
+@logs_app.command("export", epilog=LOGS_EXPORT_EXAMPLES)
 def logs_export(
     session_id: Annotated[str, typer.Argument(help="Session ID to export")],
     output: Annotated[
@@ -612,7 +741,18 @@ def logs_export(
     console.print(f"[green]✓[/green] Exported to: {output}")
 
 
-@logs_app.command("delete")
+LOGS_DELETE_EXAMPLES = """
+[bold]Examples:[/bold]
+
+  Delete with confirmation:
+  [dim]$ focusgroup logs delete 20260105-abc123[/dim]
+
+  Delete without confirmation:
+  [dim]$ focusgroup logs delete 20260105-abc123 --force[/dim]
+"""
+
+
+@logs_app.command("delete", epilog=LOGS_DELETE_EXAMPLES)
 def logs_delete(
     session_id: Annotated[str, typer.Argument(help="Session ID to delete")],
     force: Annotated[

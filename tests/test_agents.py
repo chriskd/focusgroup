@@ -5,7 +5,6 @@ import pytest
 from focusgroup.agents.base import AgentResponse, StreamChunk
 from focusgroup.agents.registry import (
     ProviderInfo,
-    create_agent,
     create_agents,
     get_provider_info,
     list_providers,
