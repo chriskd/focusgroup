@@ -1,0 +1,52 @@
+# =============================================================================
+# Mixed Agents Test - Claude + Codex with exploration enabled
+# =============================================================================
+#
+# Use this template when you want:
+# - Agents to actually run the tool (exploration mode)
+# - Mix of CLI agents for authentic behavior
+# - Quick feedback based on real interaction
+#
+# With exploration = true, agents can:
+# - Run the tool with various arguments
+# - Explore subcommands
+# - Test edge cases
+# - Report findings from real usage
+#
+# Requirements:
+# - claude CLI installed and authenticated
+# - codex CLI installed and authenticated
+# - Tool being evaluated must be in PATH
+# =============================================================================
+
+[session]
+name = "mixed-exploration-test"
+mode = "single"
+parallel_agents = true       # Run both at the same time
+exploration = true           # Allow agents to run tool commands
+
+[tool]
+type = "cli"
+command = "mx"               # Must be in PATH for agents to run
+# No help_args needed - agents will explore themselves
+
+# Agent 1: Claude CLI with exploration
+[[agents]]
+provider = "claude"
+mode = "cli"                 # Required for exploration
+name = "Claude"
+
+# Agent 2: Codex CLI with exploration
+[[agents]]
+provider = "codex"
+mode = "cli"                 # Required for exploration
+name = "Codex"
+
+[questions]
+rounds = [
+    "Try running some mx commands and give feedback on the experience.",
+]
+
+[output]
+format = "text"
+save_log = true

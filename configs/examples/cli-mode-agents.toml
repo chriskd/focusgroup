@@ -1,26 +1,46 @@
-# Example: Using actual CLI agents instead of API calls
-# CLI mode invokes the real `claude` and `codex` CLI tools
-# This tests authentic agent behavior vs controlled API calls
+# =============================================================================
+# CLI Mode Agents - Using actual CLI tools instead of API calls
+# =============================================================================
+#
+# Use this template when you want:
+# - Authentic agent behavior (how agents really interact with tools)
+# - Testing with the actual claude and codex CLIs
+# - More realistic feedback that reflects real-world usage
+#
+# Requirements:
+# - claude CLI installed and authenticated (`claude auth login`)
+# - codex CLI installed and authenticated (`codex auth`)
+#
+# Trade-offs vs API mode:
+# - Slower (spawns subprocesses)
+# - Less control (uses CLI defaults)
+# - More authentic (real agent behavior)
+# =============================================================================
 
 [session]
 name = "cli-mode-test"
 mode = "single"
 moderator = false
-parallel_agents = false  # Run sequentially for cleaner CLI output
+parallel_agents = false      # Run sequentially for cleaner output
 
 [tool]
 type = "cli"
-command = "jq"  # A tool most agents know well
+command = "jq"               # A tool most agents know well
 help_args = ["--help"]
 
+# Agent 1: Claude CLI
+# Uses the actual `claude` CLI for authentic behavior
 [[agents]]
 provider = "claude"
-mode = "cli"  # Uses the actual `claude` CLI
+mode = "cli"                 # Invokes `claude` command
 name = "Claude-CLI"
+# Note: system_prompt has limited effect in CLI mode
 
+# Agent 2: Codex CLI
+# Uses the actual `codex` CLI (OpenAI's coding agent)
 [[agents]]
 provider = "codex"
-mode = "cli"  # Uses the actual `codex` CLI
+mode = "cli"                 # Invokes `codex` command
 name = "Codex-CLI"
 
 [questions]

@@ -1,22 +1,33 @@
-# Example: Discussion mode where agents can see and respond to each other
-# Use this when you want agents to debate and build on each other's ideas
+# =============================================================================
+# Discussion Mode - Agents debate and build on each other's ideas
+# =============================================================================
+#
+# Use this template when you want:
+# - Agents to see and respond to each other's feedback
+# - Exploration of tradeoffs through debate
+# - Multi-round conversation that evolves
+# - A moderator to synthesize the discussion
+#
+# Good for: Design decisions, exploring tradeoffs, getting nuanced feedback
+# =============================================================================
 
 [session]
 name = "tool-discussion"
-mode = "discussion"
-moderator = true  # Moderator synthesizes the discussion
+mode = "discussion"          # Agents see and respond to each other
+moderator = true             # Enable synthesis at the end
 
-# Optional: customize which agent synthesizes (default: Claude API)
-# Supported: claude (api), claude (cli), codex (cli), openai (api)
+# Optional: Customize the moderator agent
+# If omitted, uses Claude API with default synthesis prompt
 [session.moderator_agent]
 provider = "claude"
-mode = "api"  # or "cli" for Claude CLI
+mode = "api"                 # Use "cli" for Claude CLI as moderator
 
 [tool]
 type = "cli"
-command = "docker"  # Replace with your tool
+command = "docker"           # Replace with your tool
 help_args = ["--help"]
 
+# Agent 1: DevOps perspective
 [[agents]]
 provider = "claude"
 mode = "api"
@@ -25,6 +36,7 @@ model = "claude-sonnet-4-20250514"
 system_prompt = """You are an experienced DevOps engineer who values simplicity
 and reliability. Focus on operational concerns."""
 
+# Agent 2: Developer perspective (using OpenAI for diversity)
 [[agents]]
 provider = "openai"
 mode = "api"
@@ -33,6 +45,7 @@ model = "gpt-4o"
 system_prompt = """You are a developer who frequently uses CLI tools.
 Focus on developer experience and ergonomics."""
 
+# Agent 3: UX/Agent perspective
 [[agents]]
 provider = "claude"
 mode = "api"
@@ -42,6 +55,7 @@ system_prompt = """You are a UX researcher who studies how AI agents
 interact with tools. Focus on discoverability and error prevention."""
 
 [questions]
+# Multiple rounds create a conversation
 rounds = [
     "Examine this tool's interface. What are the strengths and weaknesses for AI agent use?",
     "Given the previous responses, what specific improvements would most help agent interactions?",
@@ -49,5 +63,5 @@ rounds = [
 ]
 
 [output]
-format = "markdown"
+format = "markdown"          # Rich output with headers
 save_log = true

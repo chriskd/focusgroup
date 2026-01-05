@@ -1,18 +1,29 @@
-# Minimal config for a quick single-round feedback check
-# Good for fast iteration on a specific question
+# =============================================================================
+# Quick Check - Minimal config for fast single-round feedback
+# =============================================================================
+#
+# Use this template when you want:
+# - Fast, independent responses from multiple agents
+# - No discussion between agents
+# - A quick sanity check on a specific question
+#
+# Good for: Rapid iteration, simple questions, A/B testing agent configs
+# =============================================================================
 
 [session]
 name = "quick-check"
-mode = "single"
-moderator = false
+mode = "single"              # Each agent responds once, independently
+moderator = false            # No synthesis needed for quick checks
 
 [tool]
-command = "git"  # Replace with your tool
+command = "git"              # The CLI tool to evaluate
+# help_args defaults to ["--help"] - override if your tool uses different args
 
 [[agents]]
 provider = "claude"
-mode = "api"
+mode = "api"                 # Direct API call (faster than CLI mode)
 name = "Claude"
+# model defaults to claude-sonnet-4-20250514
 
 [[agents]]
 provider = "openai"
@@ -26,5 +37,5 @@ rounds = [
 ]
 
 [output]
-format = "text"
-save_log = true
+format = "text"              # Simple text output (alternatives: markdown, json)
+save_log = true              # Save for later review with `focusgroup logs show`

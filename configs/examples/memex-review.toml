@@ -1,33 +1,55 @@
-# Example focusgroup session config for reviewing the memex CLI tool
+# =============================================================================
+# Memex Review - Full structured evaluation with mixed providers
+# =============================================================================
+#
+# Use this template when you want:
+# - Comprehensive, phased evaluation (explore → critique → suggest → synthesize)
+# - Multiple providers for diverse perspectives
+# - Both API and CLI agents for different viewpoints
+# - A complete feedback report
+#
+# This is the most thorough evaluation template, ideal for:
+# - Major tool releases
+# - Design reviews
+# - Generating actionable improvement reports
+# =============================================================================
 
 [session]
 name = "memex-review"
-mode = "structured"  # single | discussion | structured
-moderator = true
+mode = "structured"          # Four phases: explore, critique, suggest, synthesize
+moderator = true             # Synthesize all feedback at the end
 
 [tool]
 type = "cli"
-command = "mx"
+command = "mx"               # The memex CLI tool
 help_args = ["--help"]
 
+# Agent 1: Claude via API
+# Controlled environment, custom parameters
 [[agents]]
 provider = "claude"
 mode = "api"
 model = "claude-sonnet-4-20250514"
 name = "Claude (API)"
 
+# Agent 2: Claude via CLI
+# Authentic behavior, full tool access
 [[agents]]
 provider = "claude"
 mode = "cli"
 name = "Claude (CLI)"
 # Uses the actual `claude` CLI for authentic behavior
 
+# Agent 3: OpenAI GPT-4o
+# Alternative perspective from a different model family
 [[agents]]
 provider = "openai"
 mode = "api"
 model = "gpt-4o"
 name = "GPT-4o"
 
+# Agent 4: Codex
+# Code-focused agent via CLI
 [[agents]]
 provider = "codex"
 mode = "cli"
@@ -35,6 +57,12 @@ name = "Codex"
 # Uses the actual `codex` CLI
 
 [questions]
+# In structured mode, questions guide the overall focus
+# The actual prompts for each phase are built-in:
+# - Explore: Understanding and first impressions
+# - Critique: Issues and concerns
+# - Suggest: Recommendations
+# - Synthesize: Final summary
 rounds = [
     "Look at this tool's help output. What's your first impression of the interface?",
     "How would you use this tool to find information about deployments?",
@@ -43,5 +71,5 @@ rounds = [
 ]
 
 [output]
-format = "markdown"
-save_log = true
+format = "markdown"          # Rich output for reports
+save_log = true              # Keep for reference

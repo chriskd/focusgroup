@@ -1,16 +1,26 @@
-# Example: Getting feedback on documentation instead of a CLI tool
-# Use type = "docs" to evaluate markdown/text documentation
+# =============================================================================
+# Documentation Feedback - Evaluate docs instead of a CLI
+# =============================================================================
+#
+# Use this template when you want:
+# - Feedback on documentation rather than a CLI tool
+# - Multiple perspectives on documentation quality
+# - Structured phases to thoroughly evaluate docs
+#
+# Set type = "docs" to read a file instead of running --help
+# =============================================================================
 
 [session]
 name = "docs-review"
-mode = "structured"  # Goes through explore -> critique -> suggest -> synthesize
-moderator = true
+mode = "structured"          # Goes through explore → critique → suggest → synthesize
+moderator = true             # Synthesize feedback for actionable report
 
 [tool]
-type = "docs"
-command = "./README.md"  # Path to documentation file
-help_args = []  # Not used for docs type
+type = "docs"                # Read file contents instead of running a command
+command = "./README.md"      # Path to documentation file
+help_args = []               # Not used for docs type
 
+# Agent 1: Technical writer perspective
 [[agents]]
 provider = "claude"
 mode = "api"
@@ -19,6 +29,7 @@ name = "Technical-Writer"
 system_prompt = """You are an experienced technical writer who specializes
 in developer documentation. Focus on clarity, completeness, and structure."""
 
+# Agent 2: New user perspective
 [[agents]]
 provider = "openai"
 mode = "api"
@@ -27,6 +38,7 @@ name = "New-User"
 system_prompt = """You are a developer seeing this tool for the first time.
 Focus on what's confusing, what's missing, and what would help you get started."""
 
+# Agent 3: AI agent perspective
 [[agents]]
 provider = "claude"
 mode = "api"
@@ -45,5 +57,5 @@ rounds = [
 
 [output]
 format = "markdown"
-directory = "./output"  # Save reports here
+directory = "./output"       # Save reports to this directory
 save_log = true
