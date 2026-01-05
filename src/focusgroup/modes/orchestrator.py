@@ -90,6 +90,11 @@ class SessionOrchestrator:
             SessionModeError: If setup fails
             AgentUnavailableError: If agent initialization fails
         """
+        # Set exploration mode on each agent config if enabled at session level
+        if self._config.session.exploration:
+            for agent_config in self._config.agents:
+                agent_config.exploration = True
+
         # Create agents from config
         self._agents = create_agents(self._config.agents)
         self._session.agent_count = len(self._agents)
@@ -137,30 +142,18 @@ class SessionOrchestrator:
         """Create a moderator agent for synthesis.
 
         The moderator is a special agent that synthesizes
-        feedback from all other agents.
+        feedback from all other agents. Uses the user-provided
+        moderator_agent config if available, otherwise defaults
+        to Claude API.
 
         Returns:
             Configured moderator agent, or None if not enabled
         """
-        from focusgroup.config import AgentConfig, AgentMode, AgentProvider
-
         # Import here to avoid circular imports
         from .moderator import create_moderator_agent
 
-        # Use a Claude agent as moderator with special config
-        moderator_config = AgentConfig(
-            provider=AgentProvider.CLAUDE,
-            mode=AgentMode.API,
-            name="Moderator",
-            system_prompt="""You are a moderator synthesizing feedback from multiple AI agents.
-Your role is to:
-1. Identify common themes across responses
-2. Highlight unique or particularly valuable insights
-3. Note any disagreements or tensions between agent perspectives
-4. Provide a clear, actionable summary
-
-Be concise but comprehensive. Focus on what's most useful for improving the tool.""",
-        )
+        # Use user-provided moderator config if available
+        moderator_config = self._config.session.moderator_agent
         return create_moderator_agent(moderator_config)
 
     async def run_session(self) -> AsyncIterator[RoundResult]:
@@ -182,8 +175,12 @@ Be concise but comprehensive. Focus on what's most useful for improving the tool
                 mode_name="orchestrator",
             )
 
-        # Get tool context string
-        context = self._tool_help.to_context_string() if self._tool_help else None
+        # Get tool context string (with exploration instructions if enabled)
+        exploration = self._config.session.exploration
+        if self._tool_help:
+            context = self._tool_help.to_context_string(exploration=exploration)
+        else:
+            context = None
 
         # Run each question round
         questions = self._config.questions.rounds

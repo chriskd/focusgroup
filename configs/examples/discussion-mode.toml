@@ -6,6 +6,12 @@ name = "tool-discussion"
 mode = "discussion"
 moderator = true  # Moderator synthesizes the discussion
 
+# Optional: customize which agent synthesizes (default: Claude API)
+# Supported: claude (api), claude (cli), codex (cli), openai (api)
+[session.moderator_agent]
+provider = "claude"
+mode = "api"  # or "cli" for Claude CLI
+
 [tool]
 type = "cli"
 command = "docker"  # Replace with your tool

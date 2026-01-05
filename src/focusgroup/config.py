@@ -39,6 +39,7 @@ class AgentConfig(BaseModel):
     model: str | None = None
     name: str | None = None  # Display name, defaults to provider
     system_prompt: str | None = None
+    exploration: bool = False  # Enable interactive tool exploration
 
     @property
     def display_name(self) -> str:
@@ -87,7 +88,9 @@ class SessionConfig(BaseModel):
     name: str | None = None
     mode: SessionMode = SessionMode.SINGLE
     moderator: bool = False
+    moderator_agent: AgentConfig | None = None  # Custom moderator agent config
     parallel_agents: bool = True  # Query agents in parallel
+    exploration: bool = False  # Allow agents to run tool commands interactively
 
 
 class OutputConfig(BaseModel):

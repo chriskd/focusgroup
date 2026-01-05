@@ -82,9 +82,62 @@ def ask(
         str,
         typer.Option("--provider", "-p", help="Agent provider: claude, openai, or codex"),
     ] = "claude",
+    cli_mode: Annotated[
+        bool,
+        typer.Option("--cli", help="Use CLI mode instead of API mode"),
+    ] = False,
+    explore: Annotated[
+        bool,
+        typer.Option("--explore", "-e", help="Enable exploration (agents can run tool)"),
+    ] = False,
+    synthesize_with: Annotated[
+        str | None,
+        typer.Option(
+            "--synthesize-with", "-s", help="Moderator: codex, claude, claude-cli, openai"
+        ),
+    ] = None,
 ) -> None:
     """Quick ad-hoc query to an agent panel about a tool."""
-    asyncio.run(_ask_impl(tool, question, config, agents, output, provider))
+    asyncio.run(
+        _ask_impl(
+            tool, question, config, agents, output, provider, cli_mode, explore, synthesize_with
+        )
+    )
+
+
+def _parse_synthesize_with(synthesize_with: str | None) -> AgentConfig | None:
+    """Parse --synthesize-with into an AgentConfig.
+
+    Args:
+        synthesize_with: String like 'codex', 'claude', 'claude-cli', 'openai'
+
+    Returns:
+        AgentConfig for the moderator, or None if not specified
+    """
+    if not synthesize_with:
+        return None
+
+    synthesize_with = synthesize_with.lower().strip()
+
+    # Map string to provider/mode
+    provider_map = {
+        "codex": (AgentProvider.CODEX, AgentMode.CLI),
+        "claude": (AgentProvider.CLAUDE, AgentMode.API),
+        "claude-cli": (AgentProvider.CLAUDE, AgentMode.CLI),
+        "openai": (AgentProvider.OPENAI, AgentMode.API),
+    }
+
+    if synthesize_with not in provider_map:
+        console.print(f"[red]Unknown synthesizer: {synthesize_with}[/red]")
+        console.print("Valid options: codex, claude, claude-cli, openai")
+        raise typer.Exit(1)
+
+    provider, mode = provider_map[synthesize_with]
+    return AgentConfig(
+        provider=provider,
+        mode=mode,
+        name="Moderator",
+    )
 
 
 async def _ask_impl(
@@ -94,8 +147,15 @@ async def _ask_impl(
     num_agents: int,
     output_format: str,
     provider_str: str,
+    cli_mode: bool = False,
+    explore: bool = False,
+    synthesize_with: str | None = None,
 ) -> None:
     """Implementation of the ask command."""
+    # Parse --synthesize-with into moderator config
+    moderator_config = _parse_synthesize_with(synthesize_with)
+    enable_moderator = moderator_config is not None
+
     # If config provided, load it but override with command-line args
     if config_path:
         try:
@@ -103,6 +163,10 @@ async def _ask_impl(
             # Override questions
             fg_config.questions = QuestionsConfig(rounds=[question])
             fg_config.output.format = output_format  # type: ignore
+            # Override moderator if --synthesize-with provided
+            if moderator_config:
+                fg_config.session.moderator = True
+                fg_config.session.moderator_agent = moderator_config
         except Exception as e:
             console.print(f"[red]Failed to load config: {e}[/red]")
             raise typer.Exit(1) from None
@@ -115,18 +179,29 @@ async def _ask_impl(
             console.print("Valid options: claude, openai, codex")
             raise typer.Exit(1) from None
 
+        # Determine mode: Codex is always CLI, others use --cli flag or API
+        if prov == AgentProvider.CODEX:
+            mode = AgentMode.CLI
+        else:
+            mode = AgentMode.CLI if cli_mode else AgentMode.API
+
         # Create N agents with different names
         agent_configs = [
             AgentConfig(
                 provider=prov,
-                mode=AgentMode.API if prov != AgentProvider.CODEX else AgentMode.CLI,
+                mode=mode,
                 name=f"Agent-{i + 1}",
             )
             for i in range(num_agents)
         ]
 
         fg_config = FocusgroupConfig(
-            session=SessionConfig(name=f"Quick: {tool}"),
+            session=SessionConfig(
+                name=f"Quick: {tool}",
+                exploration=explore,
+                moderator=enable_moderator,
+                moderator_agent=moderator_config,
+            ),
             tool=ToolConfig(command=tool),
             agents=agent_configs,
             questions=QuestionsConfig(rounds=[question]),
