@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from focusgroup.cli import app
+from focusgroup.cli import app, infer_tool_from_context
 from focusgroup.storage.session_log import AgentResponse, QuestionRound, SessionLog
 
 runner = CliRunner()
@@ -347,7 +347,7 @@ class TestAskCommand:
         """Ask with invalid provider shows error."""
         result = runner.invoke(
             app,
-            ["ask", "mx", "What's good?", "--context", "echo test", "--provider", "invalid"],
+            ["ask", "What's good?", "--context", "mx --help", "--provider", "invalid"],
         )
         assert result.exit_code == 1
         assert "Unknown provider" in result.stdout
@@ -356,17 +356,64 @@ class TestAskCommand:
     def test_ask_invokes_async(self, mock_run):
         """Ask command invokes async implementation."""
         mock_run.return_value = None
-        runner.invoke(app, ["ask", "mx", "What's good?", "--context", "echo test"])
+        runner.invoke(app, ["ask", "What's good?", "--context", "echo test"])
 
         # Should have called asyncio.run with the async implementation
         mock_run.assert_called_once()
 
     def test_ask_requires_context(self):
         """Ask command requires --context option."""
-        result = runner.invoke(app, ["ask", "mx", "What's good?"])
+        result = runner.invoke(app, ["ask", "What's good?"])
         assert result.exit_code == 2
         # Typer puts required option error in output (stdout or stderr combined)
         assert "--context" in result.output
+
+    @patch("focusgroup.cli.asyncio.run")
+    def test_ask_infers_tool_from_command_context(self, mock_run):
+        """Ask command infers tool name from command context."""
+        mock_run.return_value = None
+        result = runner.invoke(app, ["ask", "What's good?", "--context", "mytool --help"])
+        assert result.exit_code == 0
+        # The call should have used 'mytool' as the inferred tool name
+        mock_run.assert_called_once()
+
+    @patch("focusgroup.cli.asyncio.run")
+    def test_ask_tool_override(self, mock_run):
+        """Ask command allows explicit --tool override."""
+        mock_run.return_value = None
+        result = runner.invoke(
+            app,
+            ["ask", "What's good?", "--context", "mx --help", "--tool", "memex"],
+        )
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+
+
+class TestInferToolFromContext:
+    """Test tool name inference from context."""
+
+    def test_infer_from_command_first_token(self):
+        """Infers tool name from first token of command."""
+        assert infer_tool_from_context("mx --help") == "mx"
+        assert infer_tool_from_context("focusgroup doctor") == "focusgroup"
+        assert infer_tool_from_context("python script.py") == "python"
+
+    def test_infer_from_file_context_stem(self):
+        """Infers tool name from file stem when using @ prefix."""
+        assert infer_tool_from_context("@README.md") == "README"
+        assert infer_tool_from_context("@path/to/docs.txt") == "docs"
+        assert infer_tool_from_context("@src/config.py") == "config"
+
+    def test_infer_handles_whitespace(self):
+        """Handles leading/trailing whitespace in context."""
+        assert infer_tool_from_context("  mx --help  ") == "mx"
+        assert infer_tool_from_context("  @README.md  ") == "README"
+
+    def test_infer_fallback_to_unknown(self):
+        """Returns 'unknown' for empty or unparseable context."""
+        assert infer_tool_from_context("") == "unknown"
+        assert infer_tool_from_context("   ") == "unknown"
+        assert infer_tool_from_context("@") == "unknown"
 
 
 class TestConfigValidation:

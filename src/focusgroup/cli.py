@@ -44,7 +44,7 @@ MAIN_EPILOG = """
 
 [bold]Quick Start:[/bold]
 
-  focusgroup ask mytool "Is the help clear?" -x "mytool --help"
+  focusgroup ask "Is the help clear?" -x "mytool --help"
   focusgroup init                  # Create a config file
   focusgroup doctor                # Verify setup
 """
@@ -320,6 +320,37 @@ def init(
         )
 
 
+def infer_tool_from_context(context: str) -> str:
+    """Infer the tool name from a context string.
+
+    Args:
+        context: Either "@path/to/file" for file context or a command string
+
+    Returns:
+        Inferred tool name:
+        - For commands: first token (e.g., "mx --help" -> "mx")
+        - For files: filename stem (e.g., "@path/to/README.md" -> "README")
+        - Fallback: "unknown"
+    """
+    if not context or not context.strip():
+        return "unknown"
+
+    context = context.strip()
+
+    if context.startswith("@"):
+        # File context: use filename stem
+        file_path = context[1:].strip()
+        if file_path:
+            return Path(file_path).stem or "unknown"
+        return "unknown"
+    else:
+        # Command context: use first token
+        tokens = context.split()
+        if tokens:
+            return tokens[0]
+        return "unknown"
+
+
 def resolve_context(context: str) -> str:
     """Resolve context from a file path or shell command.
 
@@ -393,29 +424,31 @@ def main(
 ASK_EXAMPLES = """
 [bold]Examples:[/bold]
 
-  Basic query with command context:
-  [dim]$ focusgroup ask mx "Is this help output clear?" -x "mx --help"[/dim]
+  Basic query (tool inferred from context):
+  [dim]$ focusgroup ask "Is this help output clear?" -x "mx --help"[/dim]
 
-  Query with file context:
-  [dim]$ focusgroup ask mylib "What's missing from these docs?" -x "@README.md"[/dim]
+  Query with file context (tool inferred as "README"):
+  [dim]$ focusgroup ask "What's missing from these docs?" -x "@README.md"[/dim]
+
+  Explicit tool name override:
+  [dim]$ focusgroup ask "Is this clear?" -x "mx --help" --tool memex[/dim]
 
   Exploration mode (agents can run the tool):
-  [dim]$ focusgroup ask mx "Try common workflows" -x "mx --help" --explore[/dim]
+  [dim]$ focusgroup ask "Try common workflows" -x "mx --help" --explore[/dim]
 
   With synthesis from a moderator:
-  [dim]$ focusgroup ask mx "Rate the UX" -x "mx --help" --synthesize-with claude[/dim]
+  [dim]$ focusgroup ask "Rate the UX" -x "mx --help" --synthesize-with claude[/dim]
 
   Use a different provider:
-  [dim]$ focusgroup ask tool "Review this" -x "@docs.md" --provider codex[/dim]
+  [dim]$ focusgroup ask "Review this" -x "@docs.md" --provider codex[/dim]
 
   Combine multiple options:
-  [dim]$ focusgroup ask mx "Full review" -x "mx --help" -e -s claude -n 5[/dim]
+  [dim]$ focusgroup ask "Full review" -x "mx --help" -e -s claude -n 5[/dim]
 """
 
 
 @app.command(epilog=ASK_EXAMPLES)
 def ask(
-    tool: Annotated[str, typer.Argument(help="Tool name for session labeling (e.g., 'mx')")],
     question: Annotated[str, typer.Argument(help="Question to ask the agent panel")],
     context: Annotated[
         str,
@@ -425,6 +458,14 @@ def ask(
             help="Context command or file: 'mytool --help' or '@README.md'",
         ),
     ],
+    tool: Annotated[
+        str | None,
+        typer.Option(
+            "--tool",
+            "-t",
+            help="Tool name for session labeling (inferred from context if not provided)",
+        ),
+    ] = None,
     config: Annotated[
         Path | None,
         typer.Option("--config", "-c", help="Path to config file for agent settings"),
@@ -454,13 +495,20 @@ def ask(
 
     Provide context via --context: either a shell command to run (e.g., 'mytool --help')
     or a file path prefixed with @ (e.g., '@README.md').
+
+    The tool name is inferred from context if not explicitly provided:
+    - Command context: first token (e.g., 'mx --help' → tool='mx')
+    - File context: filename stem (e.g., '@README.md' → tool='README')
     """
     # Resolve context upfront (file or command)
     resolved_context = resolve_context(context)
 
+    # Infer tool name from context if not provided
+    effective_tool = tool if tool else infer_tool_from_context(context)
+
     asyncio.run(
         _ask_impl(
-            tool,
+            effective_tool,
             question,
             resolved_context,
             config,
@@ -752,6 +800,9 @@ AGENTS_LIST_EXAMPLES = """
 
   Show detailed information:
   [dim]$ focusgroup agents list --verbose[/dim]
+
+  Output as JSON for programmatic use:
+  [dim]$ focusgroup agents list --json[/dim]
 """
 
 
@@ -761,9 +812,36 @@ def agents_list(
         bool,
         typer.Option("--verbose", "-v", help="Show detailed agent information"),
     ] = False,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON for programmatic parsing"),
+    ] = False,
 ) -> None:
     """List available agent presets."""
+    import json
+
     presets = list_agent_presets()
+
+    if json_output:
+        # Output structured JSON for agent consumption
+        data = []
+        for name, path in presets:
+            try:
+                preset = load_agent_preset(path)
+                data.append({
+                    "name": name,
+                    "provider": preset.provider.value,
+                    "model": preset.model,
+                    "display_name": preset.display_name,
+                    "has_system_prompt": bool(preset.system_prompt),
+                })
+            except Exception as e:
+                data.append({
+                    "name": name,
+                    "error": str(e),
+                })
+        console.print(json.dumps(data, indent=2))
+        return
 
     if not presets:
         console.print("[dim]No agent presets found.[/dim]")
@@ -807,27 +885,54 @@ AGENTS_SHOW_EXAMPLES = """
 
   Show preset with custom system prompt:
   [dim]$ focusgroup agents show security-reviewer[/dim]
+
+  Output as JSON for programmatic use:
+  [dim]$ focusgroup agents show ux-expert --json[/dim]
 """
 
 
 @agents_app.command("show", epilog=AGENTS_SHOW_EXAMPLES)
 def agents_show(
     name: Annotated[str, typer.Argument(help="Agent preset name")],
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON for programmatic parsing"),
+    ] = False,
 ) -> None:
     """Show details of an agent preset."""
+    import json
+
     agents_dir = get_agents_dir()
     preset_path = agents_dir / f"{name}.toml"
 
     if not preset_path.exists():
-        console.print(f"[red]Preset not found: {name}[/red]")
-        console.print(f"[dim]Looked in: {preset_path}[/dim]")
+        if json_output:
+            console.print(json.dumps({"error": f"Preset not found: {name}"}))
+        else:
+            console.print(f"[red]Preset not found: {name}[/red]")
+            console.print(f"[dim]Looked in: {preset_path}[/dim]")
         raise typer.Exit(1)
 
     try:
         preset = load_agent_preset(preset_path)
     except Exception as e:
-        console.print(f"[red]Failed to load preset: {e}[/red]")
+        if json_output:
+            console.print(json.dumps({"error": f"Failed to load preset: {e}"}))
+        else:
+            console.print(f"[red]Failed to load preset: {e}[/red]")
         raise typer.Exit(1) from None
+
+    if json_output:
+        data = {
+            "name": name,
+            "provider": preset.provider.value,
+            "model": preset.model,
+            "display_name": preset.display_name,
+            "system_prompt": preset.system_prompt,
+            "exploration": preset.exploration,
+        }
+        console.print(json.dumps(data, indent=2))
+        return
 
     console.print(f"\n[bold]Agent Preset: {name}[/bold]\n")
     console.print(f"Provider: [cyan]{preset.provider.value}[/cyan]")
@@ -852,6 +957,9 @@ LOGS_LIST_EXAMPLES = """
 
   Filter by tool:
   [dim]$ focusgroup logs list --tool mx[/dim]
+
+  Output as JSON for programmatic use:
+  [dim]$ focusgroup logs list --json[/dim]
 """
 
 
@@ -865,10 +973,33 @@ def logs_list(
         str | None,
         typer.Option("--tool", "-t", help="Filter by tool name"),
     ] = None,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON for programmatic parsing"),
+    ] = False,
 ) -> None:
     """List past session logs."""
+    import json
+
     storage = get_default_storage()
     sessions = storage.list_sessions(limit=limit, tool_filter=tool)
+
+    if json_output:
+        # Output structured JSON for agent consumption
+        data = [
+            {
+                "id": s.display_id,
+                "tool": s.tool,
+                "mode": s.mode,
+                "agent_count": s.agent_count,
+                "rounds": len(s.rounds),
+                "is_complete": s.is_complete,
+                "created_at": s.created_at.isoformat(),
+            }
+            for s in sessions
+        ]
+        console.print(json.dumps(data, indent=2))
+        return
 
     if not sessions:
         console.print("[dim]No sessions found.[/dim]")
@@ -904,8 +1035,8 @@ LOGS_SHOW_EXAMPLES = """
   Show session details:
   [dim]$ focusgroup logs show 20260105-abc123[/dim]
 
-  Show as JSON:
-  [dim]$ focusgroup logs show 20260105-abc123 --format json[/dim]
+  Show as JSON (for programmatic use):
+  [dim]$ focusgroup logs show 20260105-abc123 --json[/dim]
 
   Show as markdown:
   [dim]$ focusgroup logs show 20260105-abc123 --format markdown[/dim]
@@ -919,6 +1050,10 @@ def logs_show(
         str,
         typer.Option("--format", "-f", help="Output format: json, markdown, or text"),
     ] = "text",
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON (shortcut for --format json)"),
+    ] = False,
 ) -> None:
     """Show details of a past session."""
     storage = get_default_storage()
@@ -932,7 +1067,9 @@ def logs_show(
         console.print(f"[red]{e}[/red]")
         raise typer.Exit(1) from None
 
-    formatted = format_session(session, format)
+    # --json flag overrides --format
+    output_format = "json" if json_output else format
+    formatted = format_session(session, output_format)
     console.print(formatted)
 
 
