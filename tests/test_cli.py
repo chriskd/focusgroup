@@ -454,3 +454,178 @@ format = "json"
 
             result = runner.invoke(app, ["run", str(config), "--dry-run"])
             assert result.exit_code == 0, f"Failed for format: {fmt}"
+
+
+class TestInitCommand:
+    """Test 'init' command."""
+
+    def test_init_help(self):
+        """Init command shows help."""
+        result = runner.invoke(app, ["init", "--help"])
+        assert result.exit_code == 0
+        assert "Initialize a new focusgroup session config" in result.stdout
+
+    def test_init_quick_mode(self, tmp_path: Path, monkeypatch):
+        """Init with --quick creates config with defaults."""
+        monkeypatch.chdir(tmp_path)
+
+        result = runner.invoke(app, ["init", "--quick"])
+
+        assert result.exit_code == 0
+        assert "Created config" in result.stdout
+
+        # Check file was created
+        config_file = tmp_path / "focusgroup.toml"
+        assert config_file.exists()
+
+        # Verify it's valid TOML that can be loaded
+        from focusgroup.config import load_config
+
+        config = load_config(config_file)
+        assert config.tool.command == "mytool"
+        assert len(config.agents) == 2
+        assert len(config.questions.rounds) == 2
+
+    def test_init_quick_with_tool(self, tmp_path: Path, monkeypatch):
+        """Init with --quick and --tool uses custom tool name."""
+        monkeypatch.chdir(tmp_path)
+
+        result = runner.invoke(app, ["init", "--tool", "mx", "--quick"])
+
+        assert result.exit_code == 0
+
+        # Check file name is based on tool
+        config_file = tmp_path / "mx.toml"
+        assert config_file.exists()
+
+        from focusgroup.config import load_config
+
+        config = load_config(config_file)
+        assert config.tool.command == "mx"
+
+    def test_init_quick_with_provider(self, tmp_path: Path, monkeypatch):
+        """Init with --quick and --provider uses custom provider."""
+        monkeypatch.chdir(tmp_path)
+
+        result = runner.invoke(app, ["init", "--tool", "test", "--provider", "codex", "--quick"])
+
+        assert result.exit_code == 0
+
+        config_file = tmp_path / "test.toml"
+        from focusgroup.config import load_config
+
+        config = load_config(config_file)
+        assert all(agent.provider.value == "codex" for agent in config.agents)
+
+    def test_init_custom_output(self, tmp_path: Path, monkeypatch):
+        """Init with --output creates config at custom path."""
+        monkeypatch.chdir(tmp_path)
+        custom_path = tmp_path / "custom" / "session.toml"
+
+        # Create parent directory
+        custom_path.parent.mkdir(parents=True)
+
+        result = runner.invoke(app, ["init", "--output", str(custom_path), "--quick"])
+
+        assert result.exit_code == 0
+        assert custom_path.exists()
+
+    def test_init_interactive_accepts_defaults(self, tmp_path: Path, monkeypatch):
+        """Init in interactive mode accepts default values."""
+        monkeypatch.chdir(tmp_path)
+
+        # Simulate pressing Enter for all prompts (accept defaults)
+        # Tool, provider, mode, num_agents, q1, q2, q3 (empty), format,
+        # moderator (n), exploration (n) = 8 Enter + 2 n
+        input_sequence = "\n" * 8 + "n\nn\n"
+
+        result = runner.invoke(app, ["init"], input=input_sequence)
+
+        assert result.exit_code == 0
+        assert "Created config" in result.stdout
+
+        config_file = tmp_path / "focusgroup.toml"
+        assert config_file.exists()
+
+    def test_init_overwrite_cancelled(self, tmp_path: Path, monkeypatch):
+        """Init cancels when file exists and user declines overwrite."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create existing file
+        existing = tmp_path / "focusgroup.toml"
+        existing.write_text("[tool]\ncommand = 'old'")
+
+        # Simulate 'n' for overwrite prompt
+        result = runner.invoke(app, ["init"], input="n\n")
+
+        assert result.exit_code == 0
+        assert "Cancelled" in result.stdout
+
+        # File should be unchanged
+        assert "old" in existing.read_text()
+
+    def test_init_overwrite_confirmed(self, tmp_path: Path, monkeypatch):
+        """Init overwrites when file exists and user confirms."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create existing file
+        existing = tmp_path / "focusgroup.toml"
+        existing.write_text("[tool]\ncommand = 'old'")
+
+        # Simulate 'y' for overwrite, then defaults for everything else
+        # y + 8 Enter + 2 n
+        input_sequence = "y\n" + "\n" * 8 + "n\nn\n"
+        result = runner.invoke(app, ["init"], input=input_sequence)
+
+        assert result.exit_code == 0
+        assert "Created config" in result.stdout
+
+        # File should be overwritten
+        assert "old" not in existing.read_text()
+
+    def test_init_generates_valid_toml(self, tmp_path: Path, monkeypatch):
+        """Init generates valid TOML that loads and validates."""
+        monkeypatch.chdir(tmp_path)
+
+        result = runner.invoke(
+            app,
+            ["init", "--tool", "myapp", "--provider", "claude", "--quick"],
+        )
+
+        assert result.exit_code == 0
+
+        config_file = tmp_path / "myapp.toml"
+        content = config_file.read_text()
+
+        # Check for expected sections
+        assert "[session]" in content
+        assert "[tool]" in content
+        assert "[[agents]]" in content
+        assert "[questions]" in content
+        assert "[output]" in content
+
+        # Verify it loads properly
+        from focusgroup.config import load_config
+
+        config = load_config(config_file)
+        assert config.session.name == "myapp-feedback"
+        assert config.tool.command == "myapp"
+
+    def test_init_quick_mode_no_overwrite_prompt(self, tmp_path: Path, monkeypatch):
+        """Init with --quick doesn't prompt for overwrite, just overwrites."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create existing file
+        existing = tmp_path / "focusgroup.toml"
+        existing.write_text("[tool]\ncommand = 'old'")
+
+        # No input provided - quick mode should not prompt
+        result = runner.invoke(app, ["init", "--quick"])
+
+        assert result.exit_code == 0
+        assert "Created config" in result.stdout
+
+        # File should be overwritten
+        content = existing.read_text()
+        assert "old" not in content
+        assert "mytool" in content
