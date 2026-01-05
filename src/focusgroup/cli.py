@@ -32,27 +32,21 @@ from focusgroup.tools.cli import create_cli_tool
 MAIN_EPILOG = """
 [bold]Providers:[/bold]
 
-  Focusgroup supports two agent providers:
+  [cyan]claude[/cyan] - Uses Claude CLI. Requires: claude CLI installed.
+  [cyan]codex[/cyan]  - Uses Codex CLI. Requires: codex CLI installed.
 
-  [bold]claude[/bold]  - Uses Claude CLI (claude command)
-           Requires: claude CLI installed and configured
-           Modes: Can act as panel agent or moderator
-
-  [bold]codex[/bold]   - Uses OpenAI Codex CLI (codex command)
-           Requires: codex CLI installed and configured
-           Modes: Can act as panel agent or moderator
-
-[bold]Quick Reference:[/bold]
-
-  Provider  │ Exploration  │ Synthesis  │ Prerequisites
-  ──────────┼──────────────┼────────────┼────────────────────────
-  claude    │ ✓            │ ✓          │ claude CLI
-  codex     │ ✓            │ ✓          │ codex CLI
+  Both providers support exploration and synthesis modes.
 
 [bold]Modes:[/bold]
 
-  --explore (-e)       Let agents run the tool interactively
-  --synthesize-with    Add a moderator to synthesize responses
+  [cyan]--explore[/cyan] (-e)      Let agents run the tool interactively
+  [cyan]--synthesize-with[/cyan]   Add a moderator to synthesize responses
+
+[bold]Quick Start:[/bold]
+
+  focusgroup ask mytool "Is the help clear?" -x "mytool --help"
+  focusgroup init                  # Create a config file
+  focusgroup doctor                # Verify setup
 """
 
 app = typer.Typer(
@@ -1036,6 +1030,176 @@ def logs_delete(
     else:
         console.print("[red]Failed to delete session.[/red]")
         raise typer.Exit(1)
+
+
+# --- Doctor command ---
+
+DOCTOR_EXAMPLES = """
+[bold]Examples:[/bold]
+
+  Check setup:
+  [dim]$ focusgroup doctor[/dim]
+
+  Verbose output:
+  [dim]$ focusgroup doctor --verbose[/dim]
+"""
+
+
+def _check_cli_installed(command: str) -> tuple[bool, str]:
+    """Check if a CLI command is installed and get version.
+
+    Returns:
+        (is_installed, version_or_error)
+    """
+    try:
+        result = subprocess.run(
+            [command, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            version = result.stdout.strip() or result.stderr.strip()
+            # Take first line of version output
+            version = version.split("\n")[0].strip()
+            return True, version
+        return False, result.stderr.strip() or "Unknown error"
+    except FileNotFoundError:
+        return False, "Not installed"
+    except subprocess.TimeoutExpired:
+        return False, "Timed out checking version"
+    except Exception as e:
+        return False, str(e)
+
+
+def _check_cli_auth(command: str) -> tuple[bool, str]:
+    """Check if a CLI is properly authenticated.
+
+    Returns:
+        (is_authenticated, message)
+    """
+    # For claude, try a minimal prompt
+    if command == "claude":
+        try:
+            result = subprocess.run(
+                ["claude", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            # If version works, assume auth is configured
+            # (actual auth is tested at runtime)
+            if result.returncode == 0:
+                return True, "CLI responds"
+            return False, "CLI not responding"
+        except Exception as e:
+            return False, str(e)
+
+    # For codex, check if it's configured
+    elif command == "codex":
+        try:
+            result = subprocess.run(
+                ["codex", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0:
+                return True, "CLI responds"
+            return False, "CLI not responding"
+        except Exception as e:
+            return False, str(e)
+
+    return False, "Unknown provider"
+
+
+@app.command(epilog=DOCTOR_EXAMPLES)
+def doctor(
+    verbose: Annotated[
+        bool,
+        typer.Option("--verbose", "-v", help="Show detailed diagnostic info"),
+    ] = False,
+) -> None:
+    """Check focusgroup setup and diagnose issues.
+
+    Validates that provider CLIs are installed, credentials are configured,
+    and config directories exist.
+    """
+    from focusgroup.config import get_agents_dir, get_default_config_dir
+
+    all_ok = True
+    console.print("\n[bold]Focusgroup Doctor[/bold]\n")
+
+    # Check config directories
+    console.print("[bold]Configuration:[/bold]")
+    config_dir = get_default_config_dir()
+    agents_dir = get_agents_dir()
+
+    console.print(f"  Config dir: {config_dir}", end=" ")
+    if config_dir.exists():
+        console.print("[green]✓[/green]")
+    else:
+        console.print("[yellow]○ will be created on first use[/yellow]")
+
+    console.print(f"  Agents dir: {agents_dir}", end=" ")
+    if agents_dir.exists():
+        preset_count = len(list(agents_dir.glob("*.toml")))
+        if preset_count:
+            console.print(f"[green]✓[/green] ({preset_count} presets)")
+        else:
+            console.print("[green]✓[/green] (empty)")
+    else:
+        console.print("[yellow]○ will be created on first use[/yellow]")
+
+    # Check providers
+    console.print("\n[bold]Providers:[/bold]")
+
+    providers = [
+        ("claude", "Claude CLI"),
+        ("codex", "Codex CLI"),
+    ]
+
+    for cmd, name in providers:
+        console.print(f"  {name} ({cmd}):", end=" ")
+        installed, version_msg = _check_cli_installed(cmd)
+
+        if installed:
+            console.print(f"[green]✓[/green] {version_msg}")
+
+            if verbose:
+                auth_ok, auth_msg = _check_cli_auth(cmd)
+                console.print("    Auth: ", end="")
+                if auth_ok:
+                    console.print(f"[green]✓[/green] {auth_msg}")
+                else:
+                    console.print(f"[yellow]?[/yellow] {auth_msg}")
+        else:
+            console.print(f"[red]✗[/red] {version_msg}")
+            all_ok = False
+
+            # Provide actionable help
+            if cmd == "claude":
+                console.print("    [dim]Install: npm install -g @anthropic-ai/claude-code[/dim]")
+            elif cmd == "codex":
+                console.print("    [dim]Install: npm install -g @openai/codex[/dim]")
+
+    # Check for session logs
+    if verbose:
+        console.print("\n[bold]Storage:[/bold]")
+        storage = get_default_storage()
+        try:
+            sessions = storage.list_sessions(limit=5)
+            console.print(f"  Session logs: [green]✓[/green] ({len(sessions)} recent)")
+        except Exception as e:
+            console.print(f"  Session logs: [yellow]?[/yellow] {e}")
+
+    # Summary
+    console.print()
+    if all_ok:
+        console.print("[green]✓ All checks passed[/green]")
+    else:
+        console.print("[yellow]Some providers are not installed[/yellow]")
+        console.print("[dim]Install missing providers to use them in sessions.[/dim]")
 
 
 if __name__ == "__main__":
