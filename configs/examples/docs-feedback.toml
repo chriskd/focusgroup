@@ -1,0 +1,49 @@
+# Example: Getting feedback on documentation instead of a CLI tool
+# Use type = "docs" to evaluate markdown/text documentation
+
+[session]
+name = "docs-review"
+mode = "structured"  # Goes through explore -> critique -> suggest -> synthesize
+moderator = true
+
+[tool]
+type = "docs"
+command = "./README.md"  # Path to documentation file
+help_args = []  # Not used for docs type
+
+[[agents]]
+provider = "claude"
+mode = "api"
+model = "claude-sonnet-4-20250514"
+name = "Technical-Writer"
+system_prompt = """You are an experienced technical writer who specializes
+in developer documentation. Focus on clarity, completeness, and structure."""
+
+[[agents]]
+provider = "openai"
+mode = "api"
+model = "gpt-4o"
+name = "New-User"
+system_prompt = """You are a developer seeing this tool for the first time.
+Focus on what's confusing, what's missing, and what would help you get started."""
+
+[[agents]]
+provider = "claude"
+mode = "api"
+model = "claude-sonnet-4-20250514"
+name = "AI-Agent"
+system_prompt = """You are an AI coding assistant. Focus on whether this
+documentation provides enough context for you to use the tool effectively."""
+
+[questions]
+rounds = [
+    "Read this documentation. What are your first impressions?",
+    "What's missing that you would need to actually use this tool?",
+    "How could the structure be improved for better discoverability?",
+    "What specific changes would you prioritize?",
+]
+
+[output]
+format = "markdown"
+directory = "./output"  # Save reports here
+save_log = true

@@ -1,0 +1,34 @@
+# Example: Using actual CLI agents instead of API calls
+# CLI mode invokes the real `claude` and `codex` CLI tools
+# This tests authentic agent behavior vs controlled API calls
+
+[session]
+name = "cli-mode-test"
+mode = "single"
+moderator = false
+parallel_agents = false  # Run sequentially for cleaner CLI output
+
+[tool]
+type = "cli"
+command = "jq"  # A tool most agents know well
+help_args = ["--help"]
+
+[[agents]]
+provider = "claude"
+mode = "cli"  # Uses the actual `claude` CLI
+name = "Claude-CLI"
+
+[[agents]]
+provider = "codex"
+mode = "cli"  # Uses the actual `codex` CLI
+name = "Codex-CLI"
+
+[questions]
+rounds = [
+    "You've been given this tool to use. What would make it easier for you to use correctly?",
+    "If you had to teach another AI agent to use this tool, what would you emphasize?",
+]
+
+[output]
+format = "text"
+save_log = true

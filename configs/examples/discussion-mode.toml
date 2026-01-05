@@ -1,0 +1,47 @@
+# Example: Discussion mode where agents can see and respond to each other
+# Use this when you want agents to debate and build on each other's ideas
+
+[session]
+name = "tool-discussion"
+mode = "discussion"
+moderator = true  # Moderator synthesizes the discussion
+
+[tool]
+type = "cli"
+command = "docker"  # Replace with your tool
+help_args = ["--help"]
+
+[[agents]]
+provider = "claude"
+mode = "api"
+name = "Claude-Sonnet"
+model = "claude-sonnet-4-20250514"
+system_prompt = """You are an experienced DevOps engineer who values simplicity
+and reliability. Focus on operational concerns."""
+
+[[agents]]
+provider = "openai"
+mode = "api"
+name = "GPT-4o"
+model = "gpt-4o"
+system_prompt = """You are a developer who frequently uses CLI tools.
+Focus on developer experience and ergonomics."""
+
+[[agents]]
+provider = "claude"
+mode = "api"
+name = "Claude-Opus"
+model = "claude-opus-4-20250514"
+system_prompt = """You are a UX researcher who studies how AI agents
+interact with tools. Focus on discoverability and error prevention."""
+
+[questions]
+rounds = [
+    "Examine this tool's interface. What are the strengths and weaknesses for AI agent use?",
+    "Given the previous responses, what specific improvements would most help agent interactions?",
+    "Are there any disagreements about priorities? Let's discuss the tradeoffs.",
+]
+
+[output]
+format = "markdown"
+save_log = true

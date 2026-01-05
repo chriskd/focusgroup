@@ -1,0 +1,30 @@
+# Minimal config for a quick single-round feedback check
+# Good for fast iteration on a specific question
+
+[session]
+name = "quick-check"
+mode = "single"
+moderator = false
+
+[tool]
+command = "git"  # Replace with your tool
+
+[[agents]]
+provider = "claude"
+mode = "api"
+name = "Claude"
+
+[[agents]]
+provider = "openai"
+mode = "api"
+model = "gpt-4o"
+name = "GPT-4o"
+
+[questions]
+rounds = [
+    "What's your first impression of this tool's help output? Is it clear what the tool does and how to use it?",
+]
+
+[output]
+format = "text"
+save_log = true
