@@ -1386,8 +1386,9 @@ def agents_init(
     preset_path.write_text(content)
 
     console.print(f"[green]✓[/green] Created preset: {preset_path}")
-    console.print("\n[dim]Edit to customize, then use in sessions:[/dim]")
-    console.print(f"  focusgroup ask 'question' -x 'tool --help' --agents {name}")
+    console.print("\n[dim]Edit to customize, then use in config files:[/dim]")
+    console.print(f'  \\[\\[agents]]  # in your session.toml')
+    console.print(f'  preset = "{name}"')
 
 
 AGENTS_SHOW_EXAMPLES = """
