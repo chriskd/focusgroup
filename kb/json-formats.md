@@ -83,7 +83,8 @@ This is a curated format designed for human readability and tooling consumption.
           "timestamp": "2026-01-06T10:31:00.000000",
           "model": "claude-sonnet-4",
           "duration_ms": 1500,
-          "tokens_used": 150
+          "tokens_used": 150,
+          "structured_data": null
         }
       ]
     }
@@ -107,6 +108,7 @@ This is a curated format designed for human readability and tooling consumption.
 | `round_count` | Not present | Computed field |
 | `is_complete` | Not present | Computed boolean |
 | `summary` | Not present | Aggregated statistics |
+| `structured_data` | Optional per response | Optional per response |
 
 ### Summary Statistics
 
@@ -138,7 +140,24 @@ Both formats may evolve. For programmatic consumers, we recommend:
 
 A `schema_version` field may be added in future releases for breaking changes.
 
+## Structured Feedback Data
+
+When using `--schema`, responses include a `structured_data` field with parsed JSON:
+
+```json
+{
+  "response": "{\"rating\": 4, \"reasoning\": \"Good tool\"}",
+  "structured_data": {
+    "rating": 4,
+    "reasoning": "Good tool"
+  }
+}
+```
+
+See [[structured-feedback|Structured Feedback Schemas]] for details on requesting structured responses.
+
 ## See Also
 
 - [[configuration|Configuration Reference]] - Output format options
 - [[modes|Session Modes]] - How different modes affect output
+- [[structured-feedback|Structured Feedback Schemas]] - Request JSON responses

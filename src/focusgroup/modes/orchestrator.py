@@ -1,6 +1,8 @@
 """Session orchestrator - coordinates agents, tools, and modes."""
 
+import json
 import os
+import re
 from collections.abc import AsyncIterator
 from datetime import datetime
 from pathlib import Path
@@ -9,7 +11,7 @@ from typing import TYPE_CHECKING
 from focusgroup.agents.base import AgentResponse as AgentModuleResponse
 from focusgroup.agents.base import BaseAgent
 from focusgroup.agents.registry import create_agents
-from focusgroup.config import FocusgroupConfig, SessionMode, ToolConfig
+from focusgroup.config import FeedbackSchema, FocusgroupConfig, SessionMode, ToolConfig
 from focusgroup.storage.session_log import (
     AgentResponse as StorageAgentResponse,
 )
@@ -63,6 +65,70 @@ def build_agent_env(tool_config: ToolConfig) -> dict[str, str]:
         env["PATH"] = f"{new_path_entries}{os.pathsep}{current_path}"
 
     return env
+
+
+def parse_structured_response(
+    content: str, schema: FeedbackSchema | None
+) -> tuple[str, dict | None]:
+    """Parse structured JSON from agent response.
+
+    Attempts to extract JSON matching the feedback schema from the response.
+    Handles various response formats including:
+    - Pure JSON response
+    - JSON in markdown code blocks
+    - Mixed text with embedded JSON
+
+    Args:
+        content: Raw response content from agent
+        schema: The expected schema (if None, returns original content)
+
+    Returns:
+        Tuple of (display_content, structured_data).
+        - display_content: The original or cleaned response text
+        - structured_data: Parsed dict if JSON was found and valid, else None
+    """
+    if schema is None:
+        return content, None
+
+    # Try to find JSON in the response
+    structured_data = None
+
+    # Pattern 1: Response is pure JSON (possibly with whitespace)
+    stripped = content.strip()
+    if stripped.startswith("{") and stripped.endswith("}"):
+        try:
+            structured_data = json.loads(stripped)
+            return content, structured_data
+        except json.JSONDecodeError:
+            pass
+
+    # Pattern 2: JSON in markdown code block
+    code_block_pattern = r"```(?:json)?\s*\n?([\s\S]*?)\n?```"
+    matches = re.findall(code_block_pattern, content)
+    for match in matches:
+        try:
+            data = json.loads(match.strip())
+            if isinstance(data, dict):
+                structured_data = data
+                break
+        except json.JSONDecodeError:
+            continue
+
+    # Pattern 3: Look for JSON object anywhere in text
+    if structured_data is None:
+        # Find anything that looks like a JSON object
+        json_pattern = r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}"
+        matches = re.findall(json_pattern, content)
+        for match in matches:
+            try:
+                data = json.loads(match)
+                if isinstance(data, dict):
+                    structured_data = data
+                    break
+            except json.JSONDecodeError:
+                continue
+
+    return content, structured_data
 
 
 if TYPE_CHECKING:
@@ -251,12 +317,20 @@ class SessionOrchestrator:
         else:
             context = None
 
+        # Get feedback schema if configured
+        feedback_schema = self._config.session.feedback_schema
+
         # Run each question round
         questions = self._config.questions.rounds
         for i, question in enumerate(questions):
+            # Add schema instructions to prompt if schema is configured
+            augmented_prompt = question
+            if feedback_schema:
+                augmented_prompt = self._add_schema_instructions(question, feedback_schema)
+
             # Run the round using the configured mode
             result = await self._mode.run_round(
-                prompt=question,
+                prompt=augmented_prompt,
                 agents=self._agents,
                 context=context,
                 history=self._history if self._needs_history() else None,
@@ -264,6 +338,12 @@ class SessionOrchestrator:
 
             # Update round number
             result.round_number = i
+
+            # Parse structured responses if schema is configured
+            if feedback_schema:
+                for response in result.responses:
+                    _, structured = parse_structured_response(response.content, feedback_schema)
+                    response.structured_data = structured
 
             # Update conversation history for multi-turn modes
             if self._needs_history():
@@ -274,7 +354,7 @@ class SessionOrchestrator:
                         turn_type="response",
                     )
 
-            # Record to session log
+            # Record to session log (use original question, not augmented)
             self._record_round(i, question, result)
 
             yield result
@@ -332,6 +412,19 @@ class SessionOrchestrator:
 Run commands now to form your opinion based on real usage, not just documentation."""
         return context + instructions
 
+    def _add_schema_instructions(self, prompt: str, schema: FeedbackSchema) -> str:
+        """Add structured feedback schema instructions to prompt.
+
+        Args:
+            prompt: The base question/prompt
+            schema: The feedback schema to enforce
+
+        Returns:
+            Prompt with schema instructions appended
+        """
+        instructions = schema.to_prompt_instructions()
+        return f"{prompt}\n\n{instructions}"
+
     def _record_round(
         self,
         round_number: int,
@@ -383,6 +476,7 @@ Run commands now to form your opinion based on real usage, not just documentatio
                 if response.tokens_in or response.tokens_out
                 else None
             ),
+            structured_data=response.structured_data,
         )
 
     async def _run_moderator_synthesis(self) -> None:

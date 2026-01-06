@@ -9,9 +9,12 @@ import pytest
 from focusgroup.config import (
     AgentConfig,
     AgentProvider,
+    FeedbackSchema,
     FocusgroupConfig,
     OutputConfig,
     QuestionsConfig,
+    SchemaField,
+    SchemaFieldType,
     SessionConfig,
     SessionMode,
     ToolConfig,
@@ -22,7 +25,7 @@ from focusgroup.modes.base import (
     RoundResult,
     SessionModeError,
 )
-from focusgroup.modes.orchestrator import SessionOrchestrator
+from focusgroup.modes.orchestrator import SessionOrchestrator, parse_structured_response
 from focusgroup.storage.session_log import SessionLog, SessionStorage
 from focusgroup.tools.base import Tool, ToolHelp
 
@@ -469,3 +472,125 @@ class TestNeedsHistory:
             storage=SessionStorage(base_dir=tmp_path),
         )
         assert orchestrator._needs_history() is True
+
+
+class TestParseStructuredResponse:
+    """Test parse_structured_response function."""
+
+    @pytest.fixture
+    def rating_schema(self):
+        """Create a simple rating schema."""
+        return FeedbackSchema(
+            fields=[
+                SchemaField(name="rating", type=SchemaFieldType.INTEGER),
+                SchemaField(name="reasoning", type=SchemaFieldType.STRING),
+            ]
+        )
+
+    def test_returns_original_without_schema(self):
+        """Without schema, returns original content and None."""
+        content = "This is just text"
+        text, data = parse_structured_response(content, None)
+        assert text == content
+        assert data is None
+
+    def test_parses_pure_json_response(self, rating_schema):
+        """Parse pure JSON response."""
+        content = '{"rating": 4, "reasoning": "Good tool"}'
+        text, data = parse_structured_response(content, rating_schema)
+        assert text == content
+        assert data is not None
+        assert data["rating"] == 4
+        assert data["reasoning"] == "Good tool"
+
+    def test_parses_json_with_whitespace(self, rating_schema):
+        """Parse JSON with surrounding whitespace."""
+        content = """
+        {
+            "rating": 5,
+            "reasoning": "Excellent"
+        }
+        """
+        text, data = parse_structured_response(content, rating_schema)
+        assert data is not None
+        assert data["rating"] == 5
+
+    def test_parses_json_in_markdown_code_block(self, rating_schema):
+        """Parse JSON from markdown code block."""
+        content = """Here is my assessment:
+
+```json
+{"rating": 3, "reasoning": "Average"}
+```
+
+Hope this helps!"""
+        text, data = parse_structured_response(content, rating_schema)
+        assert text == content
+        assert data is not None
+        assert data["rating"] == 3
+        assert data["reasoning"] == "Average"
+
+    def test_parses_json_in_code_block_without_language(self, rating_schema):
+        """Parse JSON from code block without language specifier."""
+        content = """Assessment:
+
+```
+{"rating": 2, "reasoning": "Needs work"}
+```"""
+        text, data = parse_structured_response(content, rating_schema)
+        assert data is not None
+        assert data["rating"] == 2
+
+    def test_parses_json_embedded_in_text(self, rating_schema):
+        """Parse JSON embedded in regular text."""
+        content = 'After analysis, I give this {"rating": 4, "reasoning": "Solid"} score.'
+        text, data = parse_structured_response(content, rating_schema)
+        assert data is not None
+        assert data["rating"] == 4
+
+    def test_returns_none_for_invalid_json(self, rating_schema):
+        """Invalid JSON returns None for structured_data."""
+        content = "This has no valid JSON {broken: json}"
+        text, data = parse_structured_response(content, rating_schema)
+        assert text == content
+        assert data is None
+
+    def test_returns_none_for_text_only(self, rating_schema):
+        """Plain text returns None for structured_data."""
+        content = "This is just a normal text response without any JSON."
+        text, data = parse_structured_response(content, rating_schema)
+        assert text == content
+        assert data is None
+
+    def test_parses_complex_nested_json(self):
+        """Parse complex JSON with arrays."""
+        schema = FeedbackSchema(
+            fields=[
+                SchemaField(name="pros", type=SchemaFieldType.LIST),
+                SchemaField(name="cons", type=SchemaFieldType.LIST),
+            ]
+        )
+        content = """```json
+{
+    "pros": ["Fast", "Easy to use"],
+    "cons": ["Limited features"]
+}
+```"""
+        text, data = parse_structured_response(content, schema)
+        assert data is not None
+        assert data["pros"] == ["Fast", "Easy to use"]
+        assert data["cons"] == ["Limited features"]
+
+    def test_handles_multiple_json_blocks(self, rating_schema):
+        """Uses first valid JSON object found."""
+        content = """First block:
+```json
+{"rating": 4, "reasoning": "First"}
+```
+Second block:
+```json
+{"rating": 2, "reasoning": "Second"}
+```"""
+        text, data = parse_structured_response(content, rating_schema)
+        assert data is not None
+        assert data["rating"] == 4  # First one wins

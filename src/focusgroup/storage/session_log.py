@@ -19,6 +19,7 @@ class AgentResponse(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     duration_ms: int | None = None  # Time to generate response
     tokens_used: int | None = None  # If available from API
+    structured_data: dict | None = None  # Parsed JSON from structured feedback
 
 
 class QuestionRound(BaseModel):

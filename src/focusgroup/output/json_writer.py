@@ -104,6 +104,10 @@ class JsonWriter:
                     if resp.tokens_used:
                         resp_data["tokens_used"] = resp.tokens_used
 
+                # Include structured data if present
+                if resp.structured_data:
+                    resp_data["structured_data"] = resp.structured_data
+
                 round_data["responses"].append(resp_data)
 
             if round_.moderator_synthesis:

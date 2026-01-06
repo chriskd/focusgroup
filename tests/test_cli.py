@@ -1018,7 +1018,9 @@ class TestQuietFlag:
     def test_quiet_flag_documented(self):
         """Quiet flag is properly documented."""
         result = runner.invoke(app, ["--help"])
-        assert "Suppress status messages" in result.stdout or "JSON is always clean" in result.stdout
+        has_suppress = "Suppress status messages" in result.stdout
+        has_clean = "JSON is always clean" in result.stdout
+        assert has_suppress or has_clean
 
     @patch("focusgroup.cli.asyncio.run")
     def test_ask_with_quiet_flag_runs(self, mock_run):
@@ -1048,7 +1050,6 @@ class TestStatusPrint:
 
     def test_status_print_suppressed_for_json(self):
         """status_print is suppressed when is_json_output=True."""
-        from io import StringIO
         from unittest.mock import patch
 
         from focusgroup.cli import status_print

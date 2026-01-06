@@ -21,7 +21,9 @@ from focusgroup.config import (
     ToolConfig,
     get_agents_dir,
     get_preset_path,
+    get_schema_preset,
     list_agent_presets,
+    list_schema_presets,
     load_agent_preset,
     load_config,
 )
@@ -745,6 +747,14 @@ def ask(
             help="Show detailed output including agent command invocations and errors.",
         ),
     ] = False,
+    schema: Annotated[
+        str | None,
+        typer.Option(
+            "--schema",
+            help="Request structured JSON responses. Use preset names (rating, pros-cons, review) "
+            "or define custom schemas in config files.",
+        ),
+    ] = None,
 ) -> None:
     """Quick ad-hoc query to an agent panel about a tool.
 
@@ -763,9 +773,7 @@ def ask(
 
     # Handle dry-run: show what would be sent to agents
     if dry_run:
-        _show_dry_run(
-            effective_tool, question, resolved_context, explore, no_truncate=no_truncate
-        )
+        _show_dry_run(effective_tool, question, resolved_context, explore, no_truncate=no_truncate)
         return
 
     # Cost estimation and confirmation
@@ -803,6 +811,7 @@ def ask(
             tag or [],
             verbose=verbose,
             working_dir=working_dir,
+            schema_name=schema,
         )
     )
 
@@ -852,11 +861,22 @@ async def _ask_impl(
     tags: list[str] | None = None,
     verbose: bool = False,
     working_dir: Path | None = None,
+    schema_name: str | None = None,
 ) -> None:
     """Implementation of the ask command."""
     # Parse --synthesize-with into moderator config
     moderator_config = _parse_synthesize_with(synthesize_with)
     enable_moderator = moderator_config is not None
+
+    # Parse --schema into FeedbackSchema
+    feedback_schema = None
+    if schema_name:
+        feedback_schema = get_schema_preset(schema_name)
+        if feedback_schema is None:
+            available = ", ".join(list_schema_presets())
+            console.print(f"[red]Unknown schema preset: {schema_name}[/red]")
+            console.print(f"Available presets: {available}")
+            raise typer.Exit(1)
 
     # If config provided, load it but override with command-line args
     if config_path:
@@ -872,6 +892,9 @@ async def _ask_impl(
             # Override timeout if provided
             if timeout is not None:
                 fg_config.session.agent_timeout = timeout
+            # Override schema if provided
+            if feedback_schema is not None:
+                fg_config.session.feedback_schema = feedback_schema
         except Exception as e:
             console.print(f"[red]Failed to load config: {e}[/red]")
             raise typer.Exit(1) from None
@@ -914,6 +937,7 @@ async def _ask_impl(
                 moderator=enable_moderator,
                 moderator_agent=moderator_config,
                 agent_timeout=timeout,
+                feedback_schema=feedback_schema,
             ),
             tool=ToolConfig(command=tool),
             agents=agent_configs,
@@ -1416,7 +1440,7 @@ def agents_init(
 
     console.print(f"[green]✓[/green] Created preset: {preset_path}")
     console.print("\n[dim]Edit to customize, then use in config files:[/dim]")
-    console.print('  \\[\\[agents]]  # in your session.toml')
+    console.print("  \\[\\[agents]]  # in your session.toml")
     console.print(f'  preset = "{name}"')
 
 

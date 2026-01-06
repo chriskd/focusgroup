@@ -22,6 +22,7 @@ class AgentResponse:
         latency_ms: Response time in milliseconds
         timestamp: When the response was received
         metadata: Additional provider-specific metadata
+        structured_data: Parsed JSON if a feedback schema was used
     """
 
     content: str
@@ -32,6 +33,7 @@ class AgentResponse:
     latency_ms: float | None = None
     timestamp: datetime = field(default_factory=datetime.now)
     metadata: dict[str, str | int | float | bool] = field(default_factory=dict)
+    structured_data: dict | None = None  # Parsed JSON from structured feedback
 
 
 @dataclass

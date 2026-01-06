@@ -31,6 +31,190 @@ def _get_provider_value(provider: "AgentProvider | str") -> str:
     return provider
 
 
+class SchemaFieldType(str, Enum):
+    """Types for structured feedback schema fields."""
+
+    INTEGER = "integer"  # Numeric rating (1-5, 1-10, etc.)
+    STRING = "string"  # Free text
+    LIST = "list"  # List of strings (pros, cons, suggestions)
+    BOOLEAN = "boolean"  # Yes/no
+
+
+class SchemaField(BaseModel):
+    """A single field in a structured feedback schema."""
+
+    name: str
+    type: SchemaFieldType = SchemaFieldType.STRING
+    description: str | None = None  # Help text for the agent
+    required: bool = True
+    min_value: int | None = None  # For integer fields (e.g., rating 1-5)
+    max_value: int | None = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        """Ensure field name is a valid identifier."""
+        if not v.isidentifier():
+            raise ValueError(f"Field name must be a valid identifier: {v}")
+        return v
+
+
+class FeedbackSchema(BaseModel):
+    """Schema for structured agent feedback responses.
+
+    When enabled, agents are instructed to respond with JSON
+    matching this schema, enabling automated analysis and aggregation.
+
+    Example:
+        schema = FeedbackSchema(fields=[
+            SchemaField(name="rating", type=SchemaFieldType.INTEGER, min_value=1, max_value=5),
+            SchemaField(name="pros", type=SchemaFieldType.LIST),
+            SchemaField(name="cons", type=SchemaFieldType.LIST),
+            SchemaField(name="summary", type=SchemaFieldType.STRING),
+        ])
+    """
+
+    fields: list[SchemaField] = Field(min_length=1)
+    include_raw_response: bool = True  # Also include unstructured response
+
+    def to_json_schema(self) -> dict:
+        """Convert to JSON Schema format for agent instructions."""
+        properties = {}
+        required = []
+
+        for field in self.fields:
+            prop: dict = {"description": field.description or f"The {field.name} field"}
+
+            if field.type == SchemaFieldType.INTEGER:
+                prop["type"] = "integer"
+                if field.min_value is not None:
+                    prop["minimum"] = field.min_value
+                if field.max_value is not None:
+                    prop["maximum"] = field.max_value
+            elif field.type == SchemaFieldType.STRING:
+                prop["type"] = "string"
+            elif field.type == SchemaFieldType.LIST:
+                prop["type"] = "array"
+                prop["items"] = {"type": "string"}
+            elif field.type == SchemaFieldType.BOOLEAN:
+                prop["type"] = "boolean"
+
+            properties[field.name] = prop
+            if field.required:
+                required.append(field.name)
+
+        return {
+            "type": "object",
+            "properties": properties,
+            "required": required,
+        }
+
+    def to_prompt_instructions(self) -> str:
+        """Generate instructions for agents to follow this schema."""
+        import json
+
+        schema = self.to_json_schema()
+        lines = [
+            "IMPORTANT: Respond with valid JSON matching this schema:",
+            "```json",
+            json.dumps(schema, indent=2),
+            "```",
+            "",
+            "Field descriptions:",
+        ]
+
+        for field in self.fields:
+            desc = field.description or f"The {field.name} field"
+            type_hint = field.type.value
+            if field.type == SchemaFieldType.INTEGER and field.min_value is not None:
+                type_hint = f"integer ({field.min_value}-{field.max_value})"
+            elif field.type == SchemaFieldType.LIST:
+                type_hint = "array of strings"
+            lines.append(f"- {field.name} ({type_hint}): {desc}")
+
+        lines.append("")
+        lines.append("Respond ONLY with the JSON object, no other text.")
+
+        return "\n".join(lines)
+
+
+# Built-in schema presets for common use cases
+BUILTIN_SCHEMAS: dict[str, FeedbackSchema] = {
+    "rating": FeedbackSchema(
+        fields=[
+            SchemaField(
+                name="rating",
+                type=SchemaFieldType.INTEGER,
+                description="Overall rating",
+                min_value=1,
+                max_value=5,
+            ),
+            SchemaField(
+                name="reasoning",
+                type=SchemaFieldType.STRING,
+                description="Explanation for the rating",
+            ),
+        ]
+    ),
+    "pros-cons": FeedbackSchema(
+        fields=[
+            SchemaField(
+                name="pros",
+                type=SchemaFieldType.LIST,
+                description="List of positive aspects",
+            ),
+            SchemaField(
+                name="cons",
+                type=SchemaFieldType.LIST,
+                description="List of negative aspects or issues",
+            ),
+            SchemaField(
+                name="summary",
+                type=SchemaFieldType.STRING,
+                description="Brief overall summary",
+            ),
+        ]
+    ),
+    "review": FeedbackSchema(
+        fields=[
+            SchemaField(
+                name="rating",
+                type=SchemaFieldType.INTEGER,
+                description="Overall quality rating",
+                min_value=1,
+                max_value=5,
+            ),
+            SchemaField(
+                name="pros",
+                type=SchemaFieldType.LIST,
+                description="Positive aspects",
+            ),
+            SchemaField(
+                name="cons",
+                type=SchemaFieldType.LIST,
+                description="Areas for improvement",
+            ),
+            SchemaField(
+                name="suggestions",
+                type=SchemaFieldType.LIST,
+                description="Specific suggestions for improvement",
+                required=False,
+            ),
+        ]
+    ),
+}
+
+
+def get_schema_preset(name: str) -> FeedbackSchema | None:
+    """Get a built-in schema preset by name."""
+    return BUILTIN_SCHEMAS.get(name)
+
+
+def list_schema_presets() -> list[str]:
+    """List available built-in schema preset names."""
+    return list(BUILTIN_SCHEMAS.keys())
+
+
 class AgentConfig(BaseModel):
     """Configuration for a single agent in the panel."""
 
@@ -109,6 +293,7 @@ class SessionConfig(BaseModel):
     parallel_agents: bool = True  # Query agents in parallel
     exploration: bool = False  # Allow agents to run tool commands interactively
     agent_timeout: int | None = None  # Timeout for all agents (seconds)
+    feedback_schema: FeedbackSchema | None = None  # Schema for structured responses
 
 
 class OutputConfig(BaseModel):

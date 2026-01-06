@@ -9,15 +9,20 @@ from pydantic import ValidationError
 from focusgroup.config import (
     AgentConfig,
     AgentProvider,
+    FeedbackSchema,
     FocusgroupConfig,
     OutputConfig,
     QuestionsConfig,
+    SchemaField,
+    SchemaFieldType,
     SessionConfig,
     SessionMode,
     ToolConfig,
     get_agents_dir,
     get_default_config_dir,
+    get_schema_preset,
     list_agent_presets,
+    list_schema_presets,
     load_agent_preset,
     load_config,
 )
@@ -365,3 +370,187 @@ class TestConfigDirectories:
         assert len(presets) == 2
         assert "claude" in names
         assert "codex" in names
+
+
+class TestSchemaField:
+    """Test SchemaField model."""
+
+    def test_minimal_schema_field(self):
+        """Schema field with just name."""
+        field = SchemaField(name="rating")
+        assert field.name == "rating"
+        assert field.type == SchemaFieldType.STRING  # default
+        assert field.required is True
+
+    def test_integer_field_with_range(self):
+        """Schema field for integer with min/max."""
+        field = SchemaField(
+            name="score",
+            type=SchemaFieldType.INTEGER,
+            min_value=1,
+            max_value=10,
+            description="Score from 1 to 10",
+        )
+        assert field.min_value == 1
+        assert field.max_value == 10
+        assert field.description == "Score from 1 to 10"
+
+    def test_list_field(self):
+        """Schema field for list of strings."""
+        field = SchemaField(
+            name="pros",
+            type=SchemaFieldType.LIST,
+            description="Positive aspects",
+        )
+        assert field.type == SchemaFieldType.LIST
+
+    def test_invalid_field_name_rejected(self):
+        """Field name must be valid identifier."""
+        with pytest.raises(ValueError, match="valid identifier"):
+            SchemaField(name="invalid-name")
+
+    def test_optional_field(self):
+        """Schema field can be optional."""
+        field = SchemaField(name="notes", required=False)
+        assert field.required is False
+
+
+class TestFeedbackSchema:
+    """Test FeedbackSchema model."""
+
+    def test_minimal_schema(self):
+        """Schema with one field."""
+        schema = FeedbackSchema(fields=[SchemaField(name="rating", type=SchemaFieldType.INTEGER)])
+        assert len(schema.fields) == 1
+        assert schema.include_raw_response is True
+
+    def test_schema_to_json_schema(self):
+        """Convert FeedbackSchema to JSON Schema format."""
+        schema = FeedbackSchema(
+            fields=[
+                SchemaField(
+                    name="rating",
+                    type=SchemaFieldType.INTEGER,
+                    min_value=1,
+                    max_value=5,
+                    description="Rating from 1-5",
+                ),
+                SchemaField(
+                    name="pros",
+                    type=SchemaFieldType.LIST,
+                    description="Positive aspects",
+                ),
+                SchemaField(
+                    name="notes",
+                    type=SchemaFieldType.STRING,
+                    required=False,
+                ),
+            ]
+        )
+
+        json_schema = schema.to_json_schema()
+
+        assert json_schema["type"] == "object"
+        assert "rating" in json_schema["properties"]
+        assert "pros" in json_schema["properties"]
+        assert "notes" in json_schema["properties"]
+
+        # Required should only include required fields
+        assert "rating" in json_schema["required"]
+        assert "pros" in json_schema["required"]
+        assert "notes" not in json_schema["required"]
+
+        # Integer field should have min/max
+        rating_prop = json_schema["properties"]["rating"]
+        assert rating_prop["type"] == "integer"
+        assert rating_prop["minimum"] == 1
+        assert rating_prop["maximum"] == 5
+
+        # List field should have array type
+        pros_prop = json_schema["properties"]["pros"]
+        assert pros_prop["type"] == "array"
+        assert pros_prop["items"]["type"] == "string"
+
+    def test_schema_to_prompt_instructions(self):
+        """Generate prompt instructions from schema."""
+        schema = FeedbackSchema(
+            fields=[
+                SchemaField(
+                    name="rating",
+                    type=SchemaFieldType.INTEGER,
+                    min_value=1,
+                    max_value=5,
+                ),
+            ]
+        )
+
+        instructions = schema.to_prompt_instructions()
+
+        assert "IMPORTANT" in instructions
+        assert "JSON" in instructions
+        assert "rating" in instructions
+        assert "1-5" in instructions
+
+    def test_empty_fields_rejected(self):
+        """Schema must have at least one field."""
+        with pytest.raises(ValidationError):
+            FeedbackSchema(fields=[])
+
+
+class TestSchemaPresets:
+    """Test built-in schema presets."""
+
+    def test_list_schema_presets(self):
+        """List available schema presets."""
+        presets = list_schema_presets()
+        assert "rating" in presets
+        assert "pros-cons" in presets
+        assert "review" in presets
+
+    def test_get_rating_preset(self):
+        """Get the rating schema preset."""
+        schema = get_schema_preset("rating")
+        assert schema is not None
+        field_names = [f.name for f in schema.fields]
+        assert "rating" in field_names
+        assert "reasoning" in field_names
+
+    def test_get_pros_cons_preset(self):
+        """Get the pros-cons schema preset."""
+        schema = get_schema_preset("pros-cons")
+        assert schema is not None
+        field_names = [f.name for f in schema.fields]
+        assert "pros" in field_names
+        assert "cons" in field_names
+        assert "summary" in field_names
+
+    def test_get_review_preset(self):
+        """Get the full review schema preset."""
+        schema = get_schema_preset("review")
+        assert schema is not None
+        field_names = [f.name for f in schema.fields]
+        assert "rating" in field_names
+        assert "pros" in field_names
+        assert "cons" in field_names
+        assert "suggestions" in field_names
+
+    def test_get_unknown_preset_returns_none(self):
+        """Unknown preset returns None."""
+        schema = get_schema_preset("nonexistent")
+        assert schema is None
+
+
+class TestSessionConfigWithSchema:
+    """Test SessionConfig with feedback_schema field."""
+
+    def test_session_config_with_schema(self):
+        """Session config can include feedback schema."""
+        schema = FeedbackSchema(fields=[SchemaField(name="rating", type=SchemaFieldType.INTEGER)])
+        config = SessionConfig(feedback_schema=schema)
+        assert config.feedback_schema is not None
+        assert len(config.feedback_schema.fields) == 1
+
+    def test_session_config_without_schema(self):
+        """Session config without schema has None."""
+        config = SessionConfig()
+        assert config.feedback_schema is None
