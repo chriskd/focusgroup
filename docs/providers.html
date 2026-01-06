@@ -86,57 +86,31 @@
         </header>
         <div class="entry-content">
             <h1>Agent Providers Guide</h1>
-<p>Focusgroup supports multiple LLM providers, each with API and/or CLI modes. This guide covers setup and best practices for each.</p>
+<p>Focusgroup supports multiple LLM providers via their CLI tools. This guide covers setup and best practices for each.</p>
 <h2>Overview</h2>
 <table>
 <thead>
 <tr>
 <th>Provider</th>
-<th>API Mode</th>
-<th>CLI Mode</th>
+<th>CLI Tool</th>
 <th>Best For</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Claude (Anthropic)</td>
-<td>Yes</td>
-<td>Yes</td>
+<td><code>claude</code></td>
 <td>General feedback, nuanced analysis</td>
 </tr>
 <tr>
-<td>OpenAI</td>
-<td>Yes</td>
-<td>No</td>
-<td>Alternative perspective, GPT-4o capabilities</td>
-</tr>
-<tr>
 <td>Codex (OpenAI)</td>
-<td>No</td>
-<td>Yes</td>
-<td>Code-focused feedback, authentic CLI behavior</td>
+<td><code>codex</code></td>
+<td>Code-focused feedback, OpenAI perspective</td>
 </tr>
 </tbody>
 </table>
+<p>All agents operate in CLI mode, invoking the actual CLI tools. This provides authentic agent behavior—the same way agents really use tools.</p>
 <h2>Claude (Anthropic)</h2>
-<h3>API Mode</h3>
-<p>Direct API calls to Anthropic's Claude models.</p>
-<p><strong>Setup:</strong></p>
-<pre><code class="language-bash">export ANTHROPIC_API_KEY=&quot;sk-ant-...&quot;
-</code></pre>
-<p><strong>Config:</strong></p>
-<pre><code class="language-toml">[[agents]]
-provider = &quot;claude&quot;
-mode = &quot;api&quot;
-model = &quot;claude-sonnet-4-20250514&quot;  # or claude-opus-4-20250514
-name = &quot;Claude-Sonnet&quot;
-</code></pre>
-<p><strong>Available Models:</strong></p>
-<ul>
-<li><code>claude-sonnet-4-20250514</code> (default) - Fast, capable, cost-effective</li>
-<li><code>claude-opus-4-20250514</code> - Most capable, higher cost</li>
-</ul>
-<h3>CLI Mode</h3>
 <p>Invokes the actual <code>claude</code> CLI tool, providing authentic agent behavior.</p>
 <p><strong>Setup:</strong></p>
 <pre><code class="language-bash"># Install Claude Code CLI
@@ -148,41 +122,15 @@ claude auth login
 <p><strong>Config:</strong></p>
 <pre><code class="language-toml">[[agents]]
 provider = &quot;claude&quot;
-mode = &quot;cli&quot;
-name = &quot;Claude-CLI&quot;
+name = &quot;Claude&quot;
 </code></pre>
-<p><strong>When to use CLI mode:</strong></p>
+<p><strong>When to use Claude:</strong></p>
 <ul>
 <li>Testing how agents actually interact with tools</li>
 <li>Getting feedback that reflects real-world agent usage</li>
 <li>When you want the agent to use its full toolset (file reading, web access, etc.)</li>
 </ul>
-<h2>OpenAI</h2>
-<h3>API Mode</h3>
-<p>Direct API calls to OpenAI's GPT models.</p>
-<p><strong>Setup:</strong></p>
-<pre><code class="language-bash">export OPENAI_API_KEY=&quot;sk-...&quot;
-</code></pre>
-<p><strong>Config:</strong></p>
-<pre><code class="language-toml">[[agents]]
-provider = &quot;openai&quot;
-mode = &quot;api&quot;
-model = &quot;gpt-4o&quot;
-name = &quot;GPT-4o&quot;
-</code></pre>
-<p><strong>Available Models:</strong></p>
-<ul>
-<li><code>gpt-4o</code> (default) - Latest multimodal model</li>
-<li><code>gpt-4o-mini</code> - Faster, lower cost</li>
-<li><code>gpt-4-turbo</code> - Previous generation</li>
-</ul>
-<p><strong>Notes:</strong></p>
-<ul>
-<li>OpenAI does not have CLI mode in focusgroup</li>
-<li>System prompts are fully supported</li>
-</ul>
-<h2>Codex</h2>
-<h3>CLI Mode</h3>
+<h2>Codex (OpenAI)</h2>
 <p>Invokes the OpenAI Codex CLI for code-focused feedback.</p>
 <p><strong>Setup:</strong></p>
 <pre><code class="language-bash"># Install Codex CLI
@@ -194,7 +142,6 @@ codex auth
 <p><strong>Config:</strong></p>
 <pre><code class="language-toml">[[agents]]
 provider = &quot;codex&quot;
-mode = &quot;cli&quot;
 name = &quot;Codex&quot;
 </code></pre>
 <p><strong>When to use Codex:</strong></p>
@@ -207,72 +154,23 @@ name = &quot;Codex&quot;
 <p>A key strength of focusgroup is combining multiple providers for diverse perspectives:</p>
 <pre><code class="language-toml">[[agents]]
 provider = &quot;claude&quot;
-mode = &quot;api&quot;
-name = &quot;Claude-API&quot;
+name = &quot;Claude-1&quot;
 system_prompt = &quot;Focus on UX and ergonomics.&quot;
 
 [[agents]]
-provider = &quot;openai&quot;
-mode = &quot;api&quot;
-model = &quot;gpt-4o&quot;
-name = &quot;GPT-4o&quot;
+provider = &quot;claude&quot;
+name = &quot;Claude-2&quot;
 system_prompt = &quot;Focus on correctness and edge cases.&quot;
 
 [[agents]]
-provider = &quot;claude&quot;
-mode = &quot;cli&quot;
-name = &quot;Claude-CLI&quot;
-# No system prompt - uses authentic CLI behavior
-
-[[agents]]
 provider = &quot;codex&quot;
-mode = &quot;cli&quot;
 name = &quot;Codex&quot;
 # Code-focused perspective
 </code></pre>
-<h2>API vs CLI Mode</h2>
-<table>
-<thead>
-<tr>
-<th>Aspect</th>
-<th>API Mode</th>
-<th>CLI Mode</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Speed</td>
-<td>Faster (direct calls)</td>
-<td>Slower (subprocess)</td>
-</tr>
-<tr>
-<td>Control</td>
-<td>Full control (system prompts, params)</td>
-<td>Limited (CLI defaults)</td>
-</tr>
-<tr>
-<td>Authenticity</td>
-<td>Controlled environment</td>
-<td>Real agent behavior</td>
-</tr>
-<tr>
-<td>Cost</td>
-<td>Pay per token</td>
-<td>Depends on CLI pricing</td>
-</tr>
-<tr>
-<td>Exploration</td>
-<td>Limited</td>
-<td>Full tool access</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Recommendation:</strong> Use API mode for controlled experiments and CLI mode when you want to test authentic agent interactions.</p>
 <h2>System Prompts</h2>
 <p>Customize agent perspectives with system prompts:</p>
 <pre><code class="language-toml">[[agents]]
 provider = &quot;claude&quot;
-mode = &quot;api&quot;
 name = &quot;DevOps-Engineer&quot;
 system_prompt = &quot;&quot;&quot;You are an experienced DevOps engineer who values:
 - Reliability and operational simplicity
@@ -283,7 +181,6 @@ Focus on operational concerns when evaluating this tool.&quot;&quot;&quot;
 
 [[agents]]
 provider = &quot;claude&quot;
-mode = &quot;api&quot;
 name = &quot;Junior-Developer&quot;
 system_prompt = &quot;&quot;&quot;You are a junior developer who is:
 - Still learning CLI conventions
@@ -294,32 +191,18 @@ Evaluate this tool from a beginner's perspective.&quot;&quot;&quot;
 </code></pre>
 <p>See also: <a href="configuration.html" class="wikilink">configuration</a> for full config options, <a href="exploration.html" class="wikilink">exploration</a> for letting agents run tools.</p>
 <h2>Troubleshooting</h2>
-<h3>Claude API Issues</h3>
-<pre><code class="language-bash"># Verify API key is set
-echo $ANTHROPIC_API_KEY
-
-# Test directly
-curl https://api.anthropic.com/v1/messages \
-  -H &quot;x-api-key: $ANTHROPIC_API_KEY&quot; \
-  -H &quot;anthropic-version: 2023-06-01&quot; \
-  -d '{&quot;model&quot;:&quot;claude-sonnet-4-20250514&quot;,&quot;max_tokens&quot;:10,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Hi&quot;}]}'
-</code></pre>
-<h3>OpenAI API Issues</h3>
-<pre><code class="language-bash"># Verify API key
-echo $OPENAI_API_KEY
-
-# Test directly
-curl https://api.openai.com/v1/chat/completions \
-  -H &quot;Authorization: Bearer $OPENAI_API_KEY&quot; \
-  -d '{&quot;model&quot;:&quot;gpt-4o&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Hi&quot;}]}'
-</code></pre>
-<h3>CLI Agent Issues</h3>
-<pre><code class="language-bash"># Verify Claude CLI
+<h3>Claude CLI Issues</h3>
+<pre><code class="language-bash"># Verify Claude CLI is installed
 claude --version
-claude &quot;Hello&quot;
 
-# Verify Codex CLI
+# Test authentication
+claude &quot;Hello, can you respond?&quot;
+</code></pre>
+<h3>Codex CLI Issues</h3>
+<pre><code class="language-bash"># Verify Codex CLI is installed
 codex --version
+
+# Test authentication
 codex &quot;Hello&quot;
 </code></pre>
 

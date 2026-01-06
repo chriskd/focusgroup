@@ -70,19 +70,19 @@ cd focusgroup
 uv pip install -e ".[dev]"
 ```
 
-### API Keys
+### CLI Authentication
 
-Set up API keys for the providers you want to use:
+Focusgroup uses CLI tools for all agents. Set up authentication for the providers you want to use:
 
 ```bash
-# For Claude (Anthropic)
-export ANTHROPIC_API_KEY="your-key"
+# For Claude
+claude auth login
 
-# For OpenAI
-export OPENAI_API_KEY="your-key"
+# For Codex (OpenAI)
+codex auth
 ```
 
-For CLI-mode agents (`claude`, `codex`), ensure those CLIs are installed and authenticated.
+See [Agent Providers Guide](docs/providers.md) for detailed setup instructions.
 
 ## Usage
 

@@ -20,8 +20,6 @@ exploration = false          # Let agents run the tool
 
 [session.moderator_agent]    # Optional: customize the moderator
 provider = "claude"
-mode = "api"
-model = "claude-sonnet-4-20250514"
 
 [tool]
 type = "cli"                 # cli | docs
@@ -31,17 +29,13 @@ working_dir = "/path/to/dir" # Optional working directory
 
 [[agents]]
 provider = "claude"
-mode = "api"
-model = "claude-sonnet-4-20250514"
 name = "Claude-Sonnet"
 system_prompt = "You are a DevOps engineer..."
 exploration = false          # Per-agent exploration override
 
 [[agents]]
-provider = "openai"
-mode = "api"
-model = "gpt-4o"
-name = "GPT-4o"
+provider = "codex"
+name = "Codex"
 
 [questions]
 rounds = [
@@ -72,13 +66,11 @@ Controls overall session behavior.
 
 ### `[session.moderator_agent]`
 
-Optional custom configuration for the moderator. If omitted, uses Claude API with default synthesis prompt.
+Optional custom configuration for the moderator. If omitted, uses Claude CLI with default synthesis prompt.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `provider` | string | `"claude"` | `claude`, `openai`, or `codex` |
-| `mode` | string | `"api"` | `api` or `cli` |
-| `model` | string | provider default | Specific model to use |
+| `provider` | string | `"claude"` | `claude` or `codex` |
 
 ### `[tool]`
 
@@ -99,7 +91,6 @@ Define one or more agents. At least one agent is required.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `provider` | string | **required** | `claude`, `codex`, or custom provider name (see [[providers]]) |
-| `model` | string | provider default | Specific model to use |
 | `name` | string | auto-generated | Display name for this agent |
 | `system_prompt` | string | none | Custom system prompt for this agent |
 | `exploration` | bool | `false` | Enable tool exploration for this agent |

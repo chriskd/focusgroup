@@ -52,15 +52,15 @@
     },
     {
       "source": "configuration",
+      "target": "exploration"
+    },
+    {
+      "source": "configuration",
       "target": "providers"
     },
     {
       "source": "configuration",
       "target": "modes"
-    },
-    {
-      "source": "configuration",
-      "target": "exploration"
     },
     {
       "source": "providers",

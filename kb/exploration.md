@@ -34,14 +34,13 @@ exploration = true  # Enable for all agents
 # Or per-agent:
 [[agents]]
 provider = "claude"
-mode = "cli"
 exploration = true  # Just this agent can explore
 ```
 
 ## How It Works
 
 1. **Context Enhancement**: Agents receive instructions on how to run the tool
-2. **Tool Access**: CLI-mode agents can execute the tool command
+2. **Tool Access**: CLI agents can execute the tool command
 3. **Interactive Feedback**: Agents explore, then report findings
 
 ### What Agents See
@@ -63,16 +62,12 @@ this tool before giving feedback!
 
 ## Requirements
 
-Exploration works best with CLI-mode agents (see [[providers]] for setup):
+Exploration works with CLI-based agents (see [[providers]] for setup):
 
-| Provider | Mode | Exploration Support |
-|----------|------|---------------------|
-| Claude | CLI | Full support |
-| Codex | CLI | Full support |
-| Claude | API | Limited (no shell access) |
-| OpenAI | API | Limited (no shell access) |
-
-**Recommendation:** Use CLI-mode agents for exploration.
+| Provider | Exploration Support |
+|----------|---------------------|
+| Claude | Full support |
+| Codex | Full support |
 
 ## Example: Exploring a Search Tool
 
@@ -88,12 +83,10 @@ command = "mx"
 
 [[agents]]
 provider = "claude"
-mode = "cli"
 name = "Explorer-1"
 
 [[agents]]
 provider = "codex"
-mode = "cli"
 name = "Explorer-2"
 
 [questions]
@@ -105,7 +98,7 @@ rounds = [
 ### Sample Session Output
 
 ```
-## Explorer-1 (Claude-CLI)
+## Explorer-1 (Claude)
 
 I explored the `mx` tool by running several commands:
 
@@ -122,7 +115,7 @@ I explored the `mx` tool by running several commands:
 - Unclear difference between `search` and `list`
 - No obvious way to see all available tags
 
-## Explorer-2 (Codex-CLI)
+## Explorer-2 (Codex)
 
 I tested the tool with various inputs:
 
@@ -141,14 +134,13 @@ I tested the tool with various inputs:
 
 ### What Permissions Are Granted
 
-CLI-mode agents run with **relaxed permission controls** to enable tool exploration:
+CLI agents run with **relaxed permission controls** to enable tool exploration:
 
-| Provider | Mode | Permission Flags | What This Means |
-|----------|------|------------------|-----------------|
-| Claude | CLI | `--dangerously-skip-permissions` | Bypasses all permission prompts; agent can run any command without approval |
-| Codex | CLI (explore) | `--sandbox danger-full-access` | Removes sandbox restrictions; full filesystem and network access |
-| Codex | CLI (no explore) | `--full-auto` | Standard Codex safety checks apply |
-| Claude/OpenAI | API | N/A | No shell access; limited to API-only interactions |
+| Provider | Permission Flags | What This Means |
+|----------|------------------|-----------------|
+| Claude | `--dangerously-skip-permissions` | Bypasses all permission prompts; agent can run any command without approval |
+| Codex (explore) | `--sandbox danger-full-access` | Removes sandbox restrictions; full filesystem and network access |
+| Codex (no explore) | `--full-auto` | Standard Codex safety checks apply |
 
 ### What Agents Can Access
 
@@ -198,21 +190,9 @@ Before enabling exploration for a tool:
 env -i PATH="$PATH" HOME="$HOME" focusgroup ask mytool "..." --explore
 
 # Or explicitly set only needed variables
-export MYTOOL_API_KEY=xxx  # Only what's needed
+export MYTOOL_CONFIG=/path/to/config
 focusgroup ask mytool "..." --explore
 ```
-
-#### 4. Use API Mode for Untrusted Scenarios
-
-If you can't isolate the environment, use API-mode agents instead:
-
-```toml
-[[agents]]
-provider = "claude"
-mode = "api"  # No shell access, safer but can't explore
-```
-
-API agents can still review documentation and help text, but cannot run commands.
 
 ### Risk Summary
 
@@ -234,7 +214,7 @@ A `--sandbox-level` flag for granular control is planned but not yet implemented
 
 ```toml
 # Good: Specific exploration task
-rounds = ["Search for 'deployment' and 'API' topics, then compare the results"]
+rounds = ["Search for 'deployment' topics, then report what you found"]
 
 # Less effective: Vague request
 rounds = ["Explore this tool"]
@@ -263,20 +243,19 @@ exploration = true
 moderator = true  # Synthesize exploration findings
 ```
 
-### 4. Mix API and CLI Agents
+### 4. Mix Exploration Modes
 
 ```toml
-# CLI agents explore, API agents analyze
+# One agent explores, another analyzes
 [[agents]]
 provider = "claude"
-mode = "cli"
 name = "Explorer"
 exploration = true
 
 [[agents]]
-provider = "claude"
-mode = "api"
+provider = "codex"
 name = "Analyst"
+exploration = false
 system_prompt = "Analyze the explorer's findings and suggest improvements."
 ```
 
@@ -284,7 +263,6 @@ system_prompt = "Analyze the explorer's findings and suggest improvements."
 
 ### Agent Can't Run Commands
 
-- Ensure you're using CLI mode (`mode = "cli"`)
 - Verify the CLI tool is installed (`claude --version`, `codex --version`)
 - Check that the tool being evaluated is in PATH
 

@@ -106,13 +106,12 @@ exploration = true  # Enable for all agents
 # Or per-agent:
 [[agents]]
 provider = &quot;claude&quot;
-mode = &quot;cli&quot;
 exploration = true  # Just this agent can explore
 </code></pre>
 <h2>How It Works</h2>
 <ol>
 <li><strong>Context Enhancement</strong>: Agents receive instructions on how to run the tool</li>
-<li><strong>Tool Access</strong>: CLI-mode agents can execute the tool command</li>
+<li><strong>Tool Access</strong>: CLI agents can execute the tool command</li>
 <li><strong>Interactive Feedback</strong>: Agents explore, then report findings</li>
 </ol>
 <h3>What Agents See</h3>
@@ -129,39 +128,25 @@ this tool before giving feedback!
 4. Explore subcommands that interest you
 </code></pre>
 <h2>Requirements</h2>
-<p>Exploration works best with CLI-mode agents (see <a href="providers.html" class="wikilink">providers</a> for setup):</p>
+<p>Exploration works with CLI-based agents (see <a href="providers.html" class="wikilink">providers</a> for setup):</p>
 <table>
 <thead>
 <tr>
 <th>Provider</th>
-<th>Mode</th>
 <th>Exploration Support</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Claude</td>
-<td>CLI</td>
 <td>Full support</td>
 </tr>
 <tr>
 <td>Codex</td>
-<td>CLI</td>
 <td>Full support</td>
-</tr>
-<tr>
-<td>Claude</td>
-<td>API</td>
-<td>Limited (no shell access)</td>
-</tr>
-<tr>
-<td>OpenAI</td>
-<td>API</td>
-<td>Limited (no shell access)</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Recommendation:</strong> Use CLI-mode agents for exploration.</p>
 <h2>Example: Exploring a Search Tool</h2>
 <pre><code class="language-toml">[session]
 name = &quot;memex-exploration&quot;
@@ -174,12 +159,10 @@ command = &quot;mx&quot;
 
 [[agents]]
 provider = &quot;claude&quot;
-mode = &quot;cli&quot;
 name = &quot;Explorer-1&quot;
 
 [[agents]]
 provider = &quot;codex&quot;
-mode = &quot;cli&quot;
 name = &quot;Explorer-2&quot;
 
 [questions]
@@ -188,7 +171,7 @@ rounds = [
 ]
 </code></pre>
 <h3>Sample Session Output</h3>
-<pre><code>## Explorer-1 (Claude-CLI)
+<pre><code>## Explorer-1 (Claude)
 
 I explored the `mx` tool by running several commands:
 
@@ -205,7 +188,7 @@ I explored the `mx` tool by running several commands:
 - Unclear difference between `search` and `list`
 - No obvious way to see all available tags
 
-## Explorer-2 (Codex-CLI)
+## Explorer-2 (Codex)
 
 I tested the tool with various inputs:
 
@@ -222,12 +205,11 @@ I tested the tool with various inputs:
 <p><strong>WARNING</strong>: Exploration mode grants agents significant system access. Read this section carefully before enabling exploration.</p>
 </blockquote>
 <h3>What Permissions Are Granted</h3>
-<p>CLI-mode agents run with <strong>relaxed permission controls</strong> to enable tool exploration:</p>
+<p>CLI agents run with <strong>relaxed permission controls</strong> to enable tool exploration:</p>
 <table>
 <thead>
 <tr>
 <th>Provider</th>
-<th>Mode</th>
 <th>Permission Flags</th>
 <th>What This Means</th>
 </tr>
@@ -235,27 +217,18 @@ I tested the tool with various inputs:
 <tbody>
 <tr>
 <td>Claude</td>
-<td>CLI</td>
 <td><code>--dangerously-skip-permissions</code></td>
 <td>Bypasses all permission prompts; agent can run any command without approval</td>
 </tr>
 <tr>
-<td>Codex</td>
-<td>CLI (explore)</td>
+<td>Codex (explore)</td>
 <td><code>--sandbox danger-full-access</code></td>
 <td>Removes sandbox restrictions; full filesystem and network access</td>
 </tr>
 <tr>
-<td>Codex</td>
-<td>CLI (no explore)</td>
+<td>Codex (no explore)</td>
 <td><code>--full-auto</code></td>
 <td>Standard Codex safety checks apply</td>
-</tr>
-<tr>
-<td>Claude/OpenAI</td>
-<td>API</td>
-<td>N/A</td>
-<td>No shell access; limited to API-only interactions</td>
 </tr>
 </tbody>
 </table>
@@ -295,16 +268,9 @@ docker run -it --rm -v $(pwd):/workspace myimage focusgroup ask mytool &quot;...
 env -i PATH=&quot;$PATH&quot; HOME=&quot;$HOME&quot; focusgroup ask mytool &quot;...&quot; --explore
 
 # Or explicitly set only needed variables
-export MYTOOL_API_KEY=xxx  # Only what's needed
+export MYTOOL_CONFIG=/path/to/config
 focusgroup ask mytool &quot;...&quot; --explore
 </code></pre>
-<h4>4. Use API Mode for Untrusted Scenarios</h4>
-<p>If you can't isolate the environment, use API-mode agents instead:</p>
-<pre><code class="language-toml">[[agents]]
-provider = &quot;claude&quot;
-mode = &quot;api&quot;  # No shell access, safer but can't explore
-</code></pre>
-<p>API agents can still review documentation and help text, but cannot run commands.</p>
 <h3>Risk Summary</h3>
 <table>
 <thead>
@@ -347,7 +313,7 @@ mode = &quot;api&quot;  # No shell access, safer but can't explore
 <h2>Best Practices</h2>
 <h3>1. Use Specific Questions</h3>
 <pre><code class="language-toml"># Good: Specific exploration task
-rounds = [&quot;Search for 'deployment' and 'API' topics, then compare the results&quot;]
+rounds = [&quot;Search for 'deployment' topics, then report what you found&quot;]
 
 # Less effective: Vague request
 rounds = [&quot;Explore this tool&quot;]
@@ -369,24 +335,22 @@ rounds = [
 exploration = true
 moderator = true  # Synthesize exploration findings
 </code></pre>
-<h3>4. Mix API and CLI Agents</h3>
-<pre><code class="language-toml"># CLI agents explore, API agents analyze
+<h3>4. Mix Exploration Modes</h3>
+<pre><code class="language-toml"># One agent explores, another analyzes
 [[agents]]
 provider = &quot;claude&quot;
-mode = &quot;cli&quot;
 name = &quot;Explorer&quot;
 exploration = true
 
 [[agents]]
-provider = &quot;claude&quot;
-mode = &quot;api&quot;
+provider = &quot;codex&quot;
 name = &quot;Analyst&quot;
+exploration = false
 system_prompt = &quot;Analyze the explorer's findings and suggest improvements.&quot;
 </code></pre>
 <h2>Troubleshooting</h2>
 <h3>Agent Can't Run Commands</h3>
 <ul>
-<li>Ensure you're using CLI mode (<code>mode = &quot;cli&quot;</code>)</li>
 <li>Verify the CLI tool is installed (<code>claude --version</code>, <code>codex --version</code>)</li>
 <li>Check that the tool being evaluated is in PATH</li>
 </ul>

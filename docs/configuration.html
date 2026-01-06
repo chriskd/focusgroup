@@ -97,8 +97,6 @@ exploration = false          # Let agents run the tool
 
 [session.moderator_agent]    # Optional: customize the moderator
 provider = &quot;claude&quot;
-mode = &quot;api&quot;
-model = &quot;claude-sonnet-4-20250514&quot;
 
 [tool]
 type = &quot;cli&quot;                 # cli | docs
@@ -108,17 +106,13 @@ working_dir = &quot;/path/to/dir&quot; # Optional working directory
 
 [[agents]]
 provider = &quot;claude&quot;
-mode = &quot;api&quot;
-model = &quot;claude-sonnet-4-20250514&quot;
 name = &quot;Claude-Sonnet&quot;
 system_prompt = &quot;You are a DevOps engineer...&quot;
 exploration = false          # Per-agent exploration override
 
 [[agents]]
-provider = &quot;openai&quot;
-mode = &quot;api&quot;
-model = &quot;gpt-4o&quot;
-name = &quot;GPT-4o&quot;
+provider = &quot;codex&quot;
+name = &quot;Codex&quot;
 
 [questions]
 rounds = [
@@ -183,7 +177,7 @@ save_log = true              # Persist session log
 </tbody>
 </table>
 <h3><code>[session.moderator_agent]</code></h3>
-<p>Optional custom configuration for the moderator. If omitted, uses Claude API with default synthesis prompt.</p>
+<p>Optional custom configuration for the moderator. If omitted, uses Claude CLI with default synthesis prompt.</p>
 <table>
 <thead>
 <tr>
@@ -198,19 +192,7 @@ save_log = true              # Persist session log
 <td><code>provider</code></td>
 <td>string</td>
 <td><code>&quot;claude&quot;</code></td>
-<td><code>claude</code>, <code>openai</code>, or <code>codex</code></td>
-</tr>
-<tr>
-<td><code>mode</code></td>
-<td>string</td>
-<td><code>&quot;api&quot;</code></td>
-<td><code>api</code> or <code>cli</code></td>
-</tr>
-<tr>
-<td><code>model</code></td>
-<td>string</td>
-<td>provider default</td>
-<td>Specific model to use</td>
+<td><code>claude</code> or <code>codex</code></td>
 </tr>
 </tbody>
 </table>
@@ -275,12 +257,6 @@ save_log = true              # Persist session log
 <td>string</td>
 <td><strong>required</strong></td>
 <td><code>claude</code>, <code>codex</code>, or custom provider name (see <a href="providers.html" class="wikilink">providers</a>)</td>
-</tr>
-<tr>
-<td><code>model</code></td>
-<td>string</td>
-<td>provider default</td>
-<td>Specific model to use</td>
 </tr>
 <tr>
 <td><code>name</code></td>

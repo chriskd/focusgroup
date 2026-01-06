@@ -52,12 +52,9 @@ command = "git"
 
 [[agents]]
 provider = "claude"
-mode = "api"
 
 [[agents]]
-provider = "openai"
-mode = "api"
-model = "gpt-4o"
+provider = "codex"
 
 [questions]
 rounds = [
@@ -100,19 +97,16 @@ command = "mytool"
 
 [[agents]]
 provider = "claude"
-mode = "api"
 name = "UX-Advocate"
 system_prompt = "Prioritize user experience and ergonomics."
 
 [[agents]]
 provider = "claude"
-mode = "api"
 name = "Minimalist"
 system_prompt = "Advocate for simplicity and fewer options."
 
 [[agents]]
-provider = "openai"
-mode = "api"
+provider = "codex"
 name = "Power-User"
 system_prompt = "Represent users who want advanced features."
 
@@ -182,20 +176,11 @@ command = "memex"
 
 [[agents]]
 provider = "claude"
-mode = "api"
 name = "Claude-Sonnet"
-model = "claude-sonnet-4-20250514"
 
 [[agents]]
-provider = "openai"
-mode = "api"
-name = "GPT-4o"
-model = "gpt-4o"
-
-[[agents]]
-provider = "claude"
-mode = "cli"
-name = "Claude-CLI"
+provider = "codex"
+name = "Codex"
 
 [questions]
 rounds = [
@@ -218,8 +203,6 @@ moderator = true
 # Optional: customize the moderator
 [session.moderator_agent]
 provider = "claude"
-mode = "api"
-model = "claude-opus-4-20250514"
 ```
 
 The moderator:
