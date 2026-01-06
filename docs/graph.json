@@ -84,7 +84,7 @@
     },
     {
       "source": "configuration",
-      "target": "providers"
+      "target": "exploration"
     },
     {
       "source": "configuration",
@@ -92,7 +92,7 @@
     },
     {
       "source": "configuration",
-      "target": "exploration"
+      "target": "providers"
     },
     {
       "source": "providers",
@@ -101,18 +101,18 @@
     {
       "source": "providers",
       "target": "exploration"
+    },
+    {
+      "source": "json-formats",
+      "target": "modes"
+    },
+    {
+      "source": "json-formats",
+      "target": "configuration"
     },
     {
       "source": "json-formats",
       "target": "structured-feedback"
-    },
-    {
-      "source": "json-formats",
-      "target": "modes"
-    },
-    {
-      "source": "json-formats",
-      "target": "configuration"
     },
     {
       "source": "exploration",
