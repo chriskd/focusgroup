@@ -52,7 +52,7 @@
     },
     {
       "source": "configuration",
-      "target": "exploration"
+      "target": "modes"
     },
     {
       "source": "configuration",
@@ -60,7 +60,7 @@
     },
     {
       "source": "configuration",
-      "target": "modes"
+      "target": "exploration"
     },
     {
       "source": "providers",

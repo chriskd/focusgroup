@@ -17,6 +17,43 @@ Focusgroup supports multiple LLM providers via their CLI tools. This guide cover
 
 All agents operate in CLI mode, invoking the actual CLI tools. This provides authentic agent behavior—the same way agents really use tools.
 
+## Why CLI-Only?
+
+Focusgroup deliberately uses only CLI-based agents rather than API calls or SDK integrations. This is a core design philosophy, not a limitation.
+
+### The Problem with Approximations
+
+When you call an LLM API directly or use an agent SDK, you're not talking to "the agent"—you're talking to a model through your own harness. You control the system prompt, tool configurations, safety parameters, and context window management. The result is an *approximation* of an agent, not the real thing.
+
+Many agent implementations are closed-source. We don't know exactly how Claude Code, Codex, or other CLI agents are configured internally:
+
+- What system prompts shape their behavior?
+- What safety layers filter their responses?
+- How do they manage context and tool use?
+- What defaults and optimizations are baked in?
+
+These details significantly affect how agents interact with tools—and they're invisible when you roll your own integration.
+
+### Authentic Feedback from Real Customers
+
+Focusgroup exists to get feedback on tools designed for AI agents. The agents *are* the customers. When evaluating a CLI tool that agents will use, you want feedback from:
+
+- The actual agent as its provider ships it
+- With its real configuration and behaviors
+- Using the same interface it would use in production
+
+You don't want feedback from a simulation you cobbled together using API calls—that feedback reflects your harness, not the agent's actual experience.
+
+### CLI Tools as Ground Truth
+
+CLI tools like `claude` and `codex` represent the most accurate form of each agent as its provider intends it to operate. By invoking these tools directly, focusgroup captures:
+
+- Authentic agent reasoning and interaction patterns
+- Real-world tool use behavior
+- Provider-intended safety and capability boundaries
+
+This means focusgroup feedback reflects what agents will *actually* do with your tool, not what a bespoke API integration might do.
+
 ## Claude (Anthropic)
 
 Invokes the actual `claude` CLI tool, providing authentic agent behavior.

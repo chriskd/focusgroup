@@ -110,6 +110,34 @@
 </tbody>
 </table>
 <p>All agents operate in CLI mode, invoking the actual CLI tools. This provides authentic agent behavior—the same way agents really use tools.</p>
+<h2>Why CLI-Only?</h2>
+<p>Focusgroup deliberately uses only CLI-based agents rather than API calls or SDK integrations. This is a core design philosophy, not a limitation.</p>
+<h3>The Problem with Approximations</h3>
+<p>When you call an LLM API directly or use an agent SDK, you're not talking to &quot;the agent&quot;—you're talking to a model through your own harness. You control the system prompt, tool configurations, safety parameters, and context window management. The result is an <em>approximation</em> of an agent, not the real thing.</p>
+<p>Many agent implementations are closed-source. We don't know exactly how Claude Code, Codex, or other CLI agents are configured internally:</p>
+<ul>
+<li>What system prompts shape their behavior?</li>
+<li>What safety layers filter their responses?</li>
+<li>How do they manage context and tool use?</li>
+<li>What defaults and optimizations are baked in?</li>
+</ul>
+<p>These details significantly affect how agents interact with tools—and they're invisible when you roll your own integration.</p>
+<h3>Authentic Feedback from Real Customers</h3>
+<p>Focusgroup exists to get feedback on tools designed for AI agents. The agents <em>are</em> the customers. When evaluating a CLI tool that agents will use, you want feedback from:</p>
+<ul>
+<li>The actual agent as its provider ships it</li>
+<li>With its real configuration and behaviors</li>
+<li>Using the same interface it would use in production</li>
+</ul>
+<p>You don't want feedback from a simulation you cobbled together using API calls—that feedback reflects your harness, not the agent's actual experience.</p>
+<h3>CLI Tools as Ground Truth</h3>
+<p>CLI tools like <code>claude</code> and <code>codex</code> represent the most accurate form of each agent as its provider intends it to operate. By invoking these tools directly, focusgroup captures:</p>
+<ul>
+<li>Authentic agent reasoning and interaction patterns</li>
+<li>Real-world tool use behavior</li>
+<li>Provider-intended safety and capability boundaries</li>
+</ul>
+<p>This means focusgroup feedback reflects what agents will <em>actually</em> do with your tool, not what a bespoke API integration might do.</p>
 <h2>Claude (Anthropic)</h2>
 <p>Invokes the actual <code>claude</code> CLI tool, providing authentic agent behavior.</p>
 <p><strong>Setup:</strong></p>
