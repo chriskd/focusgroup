@@ -3,9 +3,9 @@
 import asyncio
 from enum import Enum
 
-from focusgroup.agents.base import AgentError, AgentResponse, BaseAgent
+from focusgroup.agents.base import AgentResponse, BaseAgent
 
-from .base import BaseSessionMode, ConversationHistory, RoundResult
+from .base import BaseSessionMode, ConversationHistory, RoundResult, safe_query_with_retry
 
 
 class Phase(str, Enum):
@@ -255,7 +255,11 @@ Original question: {base_prompt}"""
         context: str | None,
         phase: Phase,
     ) -> AgentResponse:
-        """Query an agent with error handling.
+        """Query an agent with error handling and retry logic.
+
+        Uses safe_query_with_retry which catches agent errors,
+        handles rate limits with exponential backoff, and returns
+        an error response rather than propagating exceptions.
 
         Args:
             agent: The agent to query
@@ -266,35 +270,10 @@ Original question: {base_prompt}"""
         Returns:
             AgentResponse (may contain error information)
         """
-        try:
-            response = await agent.respond(prompt, context)
-            # Add phase to metadata
-            response.metadata["phase"] = phase.value
-            return response
-        except AgentError as e:
-            return AgentResponse(
-                content=f"[Error in {phase.value} phase: {e}]",
-                agent_name=agent.name,
-                model=agent.config.model,
-                metadata={
-                    "error": True,
-                    "error_type": type(e).__name__,
-                    "error_message": str(e),
-                    "phase": phase.value,
-                },
-            )
-        except Exception as e:
-            return AgentResponse(
-                content=f"[Unexpected error in {phase.value} phase: {e}]",
-                agent_name=agent.name,
-                model=agent.config.model,
-                metadata={
-                    "error": True,
-                    "error_type": type(e).__name__,
-                    "error_message": str(e),
-                    "phase": phase.value,
-                },
-            )
+        response = await safe_query_with_retry(agent, prompt, context)
+        # Add phase to metadata regardless of success or error
+        response.metadata["phase"] = phase.value
+        return response
 
 
 def create_structured_mode(

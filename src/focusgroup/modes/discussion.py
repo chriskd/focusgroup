@@ -2,9 +2,9 @@
 
 import asyncio
 
-from focusgroup.agents.base import AgentError, AgentResponse, BaseAgent
+from focusgroup.agents.base import AgentResponse, BaseAgent
 
-from .base import BaseSessionMode, ConversationHistory, RoundResult
+from .base import BaseSessionMode, ConversationHistory, RoundResult, safe_query_with_retry
 
 
 class DiscussionMode(BaseSessionMode):
@@ -265,7 +265,11 @@ What would you add to this discussion?"""
         prompt: str,
         context: str | None,
     ) -> AgentResponse:
-        """Query an agent with error handling.
+        """Query an agent with error handling and retry logic.
+
+        Uses safe_query_with_retry which catches agent errors,
+        handles rate limits with exponential backoff, and returns
+        an error response rather than propagating exceptions.
 
         Args:
             agent: The agent to query
@@ -275,30 +279,7 @@ What would you add to this discussion?"""
         Returns:
             AgentResponse (may contain error information)
         """
-        try:
-            return await agent.respond(prompt, context)
-        except AgentError as e:
-            return AgentResponse(
-                content=f"[Error: {e}]",
-                agent_name=agent.name,
-                model=agent.config.model,
-                metadata={
-                    "error": True,
-                    "error_type": type(e).__name__,
-                    "error_message": str(e),
-                },
-            )
-        except Exception as e:
-            return AgentResponse(
-                content=f"[Unexpected error: {e}]",
-                agent_name=agent.name,
-                model=agent.config.model,
-                metadata={
-                    "error": True,
-                    "error_type": type(e).__name__,
-                    "error_message": str(e),
-                },
-            )
+        return await safe_query_with_retry(agent, prompt, context)
 
 
 def create_discussion_mode(

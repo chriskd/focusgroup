@@ -8,11 +8,14 @@ from focusgroup.config import AgentConfig, AgentProvider
 
 from .base import (
     AgentError,
+    AgentRateLimitError,
     AgentResponse,
     AgentTimeoutError,
     AgentUnavailableError,
     BaseAgent,
     StreamChunk,
+    is_rate_limit_error,
+    parse_retry_after,
 )
 
 # Default timeouts for Codex CLI (seconds)
@@ -85,6 +88,18 @@ class CodexCLIAgent(BaseAgent):
 
             if process.returncode != 0:
                 error_msg = stderr.decode("utf-8", errors="replace")
+
+                # Check for rate limit/quota errors
+                if is_rate_limit_error(error_msg):
+                    retry_after = parse_retry_after(error_msg)
+                    is_quota = "quota" in error_msg.lower() or "usage_limit" in error_msg.lower()
+                    raise AgentRateLimitError(
+                        f"Codex API rate limit: {error_msg.strip()}",
+                        agent_name=self.name,
+                        retry_after=retry_after,
+                        is_quota_exceeded=is_quota,
+                    )
+
                 raise AgentError(
                     f"Codex CLI exited with code {process.returncode}: {error_msg}",
                     agent_name=self.name,
@@ -172,6 +187,18 @@ class CodexCLIAgent(BaseAgent):
             if process.returncode != 0:
                 stderr = await process.stderr.read()  # type: ignore[union-attr]
                 error_msg = stderr.decode("utf-8", errors="replace")
+
+                # Check for rate limit/quota errors
+                if is_rate_limit_error(error_msg):
+                    retry_after = parse_retry_after(error_msg)
+                    is_quota = "quota" in error_msg.lower() or "usage_limit" in error_msg.lower()
+                    raise AgentRateLimitError(
+                        f"Codex API rate limit: {error_msg.strip()}",
+                        agent_name=self.name,
+                        retry_after=retry_after,
+                        is_quota_exceeded=is_quota,
+                    )
+
                 raise AgentError(
                     f"Codex CLI exited with code {process.returncode}: {error_msg}",
                     agent_name=self.name,

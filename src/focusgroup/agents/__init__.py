@@ -15,12 +15,15 @@ Quick usage:
 from .base import (
     Agent,
     AgentError,
+    AgentRateLimitError,
     AgentResponse,
     AgentResponseError,
     AgentTimeoutError,
     AgentUnavailableError,
     BaseAgent,
     StreamChunk,
+    is_rate_limit_error,
+    parse_retry_after,
 )
 from .claude import ClaudeCLIAgent, create_claude_agent
 from .codex import CodexCLIAgent, create_codex_agent
@@ -45,6 +48,10 @@ __all__ = [
     "AgentUnavailableError",
     "AgentResponseError",
     "AgentTimeoutError",
+    "AgentRateLimitError",
+    # Rate limit helpers
+    "is_rate_limit_error",
+    "parse_retry_after",
     # Factory functions
     "create_agent",
     "create_agents",

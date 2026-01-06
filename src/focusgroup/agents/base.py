@@ -185,3 +185,87 @@ class AgentTimeoutError(AgentError):
     """Raised when an agent response times out."""
 
     pass
+
+
+class AgentRateLimitError(AgentError):
+    """Raised when an agent hits API rate limits or quota.
+
+    Attributes:
+        retry_after: Suggested seconds to wait before retrying (if known)
+        is_quota_exceeded: True if this is a quota limit (vs rate limit)
+    """
+
+    def __init__(
+        self,
+        message: str,
+        agent_name: str | None = None,
+        retry_after: float | None = None,
+        is_quota_exceeded: bool = False,
+    ) -> None:
+        super().__init__(message, agent_name)
+        self.retry_after = retry_after
+        self.is_quota_exceeded = is_quota_exceeded
+
+
+# Rate limit detection patterns for various providers
+_RATE_LIMIT_PATTERNS = [
+    # HTTP status codes
+    "429",
+    "rate limit",
+    "rate_limit",
+    "ratelimit",
+    # OpenAI / Codex patterns
+    "usage_limit_reached",
+    "quota exceeded",
+    "quota_exceeded",
+    "rate limit exceeded",
+    "too many requests",
+    # Anthropic patterns
+    "overloaded",
+    "capacity",
+    # Generic patterns
+    "try again later",
+    "retry after",
+    "throttl",
+]
+
+
+def is_rate_limit_error(error_message: str) -> bool:
+    """Check if an error message indicates a rate limit or quota issue.
+
+    Args:
+        error_message: The error message to check (typically from CLI stderr)
+
+    Returns:
+        True if the error appears to be rate-limit related
+    """
+    error_lower = error_message.lower()
+    return any(pattern in error_lower for pattern in _RATE_LIMIT_PATTERNS)
+
+
+def parse_retry_after(error_message: str) -> float | None:
+    """Try to extract a retry-after duration from an error message.
+
+    Args:
+        error_message: The error message to parse
+
+    Returns:
+        Seconds to wait, or None if not found
+    """
+    import re
+
+    # Look for patterns like "retry after 30 seconds" or "retry-after: 30"
+    patterns = [
+        r"retry[- ]?after[:\s]+(\d+)",
+        r"try again in (\d+)",
+        r"wait (\d+) second",
+        r"(\d+) seconds?",  # Fallback - any number followed by "second(s)"
+    ]
+
+    error_lower = error_message.lower()
+    for pattern in patterns:
+        match = re.search(pattern, error_lower)
+        if match:
+            return float(match.group(1))
+
+    return None

@@ -2,9 +2,9 @@
 
 import asyncio
 
-from focusgroup.agents.base import AgentError, AgentResponse, BaseAgent
+from focusgroup.agents.base import AgentResponse, BaseAgent
 
-from .base import BaseSessionMode, ConversationHistory, RoundResult
+from .base import BaseSessionMode, ConversationHistory, RoundResult, safe_query_with_retry
 
 
 class SingleMode(BaseSessionMode):
@@ -110,11 +110,11 @@ class SingleMode(BaseSessionMode):
         prompt: str,
         context: str | None,
     ) -> AgentResponse:
-        """Query an agent with error handling.
+        """Query an agent with error handling and retry logic.
 
-        Catches any agent errors and returns an error response
-        rather than propagating the exception. This ensures
-        one failing agent doesn't break the entire round.
+        Uses safe_query_with_retry which catches agent errors,
+        handles rate limits with exponential backoff, and returns
+        an error response rather than propagating exceptions.
 
         Args:
             agent: The agent to query
@@ -124,32 +124,7 @@ class SingleMode(BaseSessionMode):
         Returns:
             AgentResponse (may contain error information)
         """
-        try:
-            return await agent.respond(prompt, context)
-        except AgentError as e:
-            # Return an error response rather than failing
-            return AgentResponse(
-                content=f"[Error: {e}]",
-                agent_name=agent.name,
-                model=agent.config.model,
-                metadata={
-                    "error": True,
-                    "error_type": type(e).__name__,
-                    "error_message": str(e),
-                },
-            )
-        except Exception as e:
-            # Catch unexpected errors too
-            return AgentResponse(
-                content=f"[Unexpected error: {e}]",
-                agent_name=agent.name,
-                model=agent.config.model,
-                metadata={
-                    "error": True,
-                    "error_type": type(e).__name__,
-                    "error_message": str(e),
-                },
-            )
+        return await safe_query_with_retry(agent, prompt, context)
 
 
 def create_single_mode(parallel: bool = True) -> SingleMode:

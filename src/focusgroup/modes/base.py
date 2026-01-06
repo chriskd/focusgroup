@@ -1,14 +1,26 @@
 """Base session mode protocol and types for focusgroup sessions."""
 
+import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from focusgroup.agents.base import AgentResponse
+from focusgroup.agents.base import (
+    AgentError,
+    AgentRateLimitError,
+    AgentResponse,
+)
 
 if TYPE_CHECKING:
     from focusgroup.agents.base import BaseAgent
+
+
+# Retry configuration for rate limit errors
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_INITIAL_BACKOFF = 2.0  # seconds
+DEFAULT_MAX_BACKOFF = 60.0  # seconds
+DEFAULT_BACKOFF_MULTIPLIER = 2.0
 
 
 @dataclass
@@ -226,3 +238,116 @@ class SessionModeError(Exception):
     def __init__(self, message: str, mode_name: str | None = None) -> None:
         self.mode_name = mode_name
         super().__init__(message)
+
+
+async def safe_query_with_retry(
+    agent: "BaseAgent",
+    prompt: str,
+    context: str | None,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    initial_backoff: float = DEFAULT_INITIAL_BACKOFF,
+    max_backoff: float = DEFAULT_MAX_BACKOFF,
+    backoff_multiplier: float = DEFAULT_BACKOFF_MULTIPLIER,
+) -> AgentResponse:
+    """Query an agent with error handling and retry logic for rate limits.
+
+    Catches any agent errors and returns an error response rather than
+    propagating the exception. For rate limit errors specifically,
+    retries with exponential backoff.
+
+    Args:
+        agent: The agent to query
+        prompt: The question to ask
+        context: Optional context
+        max_retries: Maximum retry attempts for rate limit errors
+        initial_backoff: Initial backoff delay in seconds
+        max_backoff: Maximum backoff delay in seconds
+        backoff_multiplier: Multiplier for exponential backoff
+
+    Returns:
+        AgentResponse (may contain error information)
+    """
+    last_error: Exception | None = None
+    backoff = initial_backoff
+    retries = 0
+
+    while retries <= max_retries:
+        try:
+            return await agent.respond(prompt, context)
+        except AgentRateLimitError as e:
+            last_error = e
+            retries += 1
+
+            if retries > max_retries:
+                # Exhausted retries - return user-friendly error
+                if e.is_quota_exceeded:
+                    error_msg = (
+                        f"[Rate Limit: {agent.name} has exceeded API quota. "
+                        "This may require upgrading your API plan or waiting "
+                        "until the quota resets.]"
+                    )
+                else:
+                    error_msg = (
+                        f"[Rate Limit: {agent.name} hit rate limits after "
+                        f"{max_retries} retries. Try again later or reduce "
+                        "the number of concurrent agents.]"
+                    )
+                return AgentResponse(
+                    content=error_msg,
+                    agent_name=agent.name,
+                    model=agent.config.model,
+                    metadata={
+                        "error": True,
+                        "error_type": "AgentRateLimitError",
+                        "error_message": str(e),
+                        "retries_attempted": retries - 1,
+                        "is_quota_exceeded": e.is_quota_exceeded,
+                    },
+                )
+
+            # Calculate wait time - use retry_after if provided, otherwise backoff
+            wait_time = e.retry_after if e.retry_after else backoff
+            wait_time = min(wait_time, max_backoff)
+
+            # Wait before retrying
+            await asyncio.sleep(wait_time)
+
+            # Increase backoff for next retry
+            backoff = min(backoff * backoff_multiplier, max_backoff)
+
+        except AgentError as e:
+            # Non-retryable agent errors
+            return AgentResponse(
+                content=f"[Error: {e}]",
+                agent_name=agent.name,
+                model=agent.config.model,
+                metadata={
+                    "error": True,
+                    "error_type": type(e).__name__,
+                    "error_message": str(e),
+                },
+            )
+        except Exception as e:
+            # Catch unexpected errors too
+            return AgentResponse(
+                content=f"[Unexpected error: {e}]",
+                agent_name=agent.name,
+                model=agent.config.model,
+                metadata={
+                    "error": True,
+                    "error_type": type(e).__name__,
+                    "error_message": str(e),
+                },
+            )
+
+    # Should never reach here, but just in case
+    return AgentResponse(
+        content=f"[Error: Unexpected retry loop exit: {last_error}]",
+        agent_name=agent.name,
+        model=agent.config.model,
+        metadata={
+            "error": True,
+            "error_type": "RetryExhausted",
+            "error_message": str(last_error),
+        },
+    )
