@@ -42,6 +42,7 @@ class SessionLog(BaseModel):
     agent_count: int = 0
     rounds: list[QuestionRound] = Field(default_factory=list)
     final_synthesis: str | None = None  # Overall moderator summary
+    tags: list[str] = Field(default_factory=list)  # User-defined tags for organization
 
     @property
     def display_id(self) -> str:
@@ -118,12 +119,14 @@ class SessionStorage:
         self,
         limit: int = 10,
         tool_filter: str | None = None,
+        tag_filter: str | None = None,
     ) -> list[SessionLog]:
         """List recent sessions.
 
         Args:
             limit: Maximum number of sessions to return
             tool_filter: Optional filter by tool name
+            tag_filter: Optional filter by tag (matches if session has this tag)
 
         Returns:
             List of session logs, most recent first
@@ -136,6 +139,9 @@ class SessionStorage:
                 session = SessionLog.model_validate(data)
 
                 if tool_filter and tool_filter not in session.tool:
+                    continue
+
+                if tag_filter and tag_filter not in session.tags:
                     continue
 
                 sessions.append(session)

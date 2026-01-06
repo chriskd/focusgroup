@@ -500,6 +500,9 @@ ASK_EXAMPLES = """
   Use a different provider:
   [dim]$ focusgroup ask "Review this" -x "@docs.md" --provider codex[/dim]
 
+  Tag sessions for organization:
+  [dim]$ focusgroup ask "Review UX" -x "mx --help" --tag=release-prep[/dim]
+
   Combine multiple options:
   [dim]$ focusgroup ask "Full review" -x "mx --help" -e -s claude -n 5[/dim]
 """
@@ -557,6 +560,10 @@ def ask(
         int | None,
         typer.Option("--timeout", help="Agent timeout in seconds (default: 120, exploration: 300)"),
     ] = None,
+    tag: Annotated[
+        list[str] | None,
+        typer.Option("--tag", help="Tag for organizing sessions (can be repeated)"),
+    ] = None,
 ) -> None:
     """Quick ad-hoc query to an agent panel about a tool.
 
@@ -585,6 +592,7 @@ def ask(
             explore,
             synthesize_with,
             timeout,
+            tag or [],
         )
     )
 
@@ -631,6 +639,7 @@ async def _ask_impl(
     explore: bool = False,
     synthesize_with: str | None = None,
     timeout: int | None = None,
+    tags: list[str] | None = None,
 ) -> None:
     """Implementation of the ask command."""
     # Parse --synthesize-with into moderator config
@@ -704,7 +713,7 @@ async def _ask_impl(
     cli_tool = create_cli_tool(tool)
 
     # Run the session with explicit context
-    orchestrator = SessionOrchestrator(fg_config, cli_tool, context=context)
+    orchestrator = SessionOrchestrator(fg_config, cli_tool, context=context, tags=tags)
 
     async def run_with_orchestrator() -> None:
         """Run orchestrator setup and session."""
@@ -1124,6 +1133,9 @@ LOGS_LIST_EXAMPLES = """
   Filter by tool:
   [dim]$ focusgroup logs list --tool mx[/dim]
 
+  Filter by tag:
+  [dim]$ focusgroup logs list --tag release-prep[/dim]
+
   Output as JSON for programmatic use:
   [dim]$ focusgroup logs list --json[/dim]
 """
@@ -1139,6 +1151,10 @@ def logs_list(
         str | None,
         typer.Option("--tool", "-t", help="Filter by tool name"),
     ] = None,
+    tag: Annotated[
+        str | None,
+        typer.Option("--tag", help="Filter by tag"),
+    ] = None,
     json_output: Annotated[
         bool,
         typer.Option("--json", help="Output as JSON for programmatic parsing"),
@@ -1148,7 +1164,7 @@ def logs_list(
     import json
 
     storage = get_default_storage()
-    sessions = storage.list_sessions(limit=limit, tool_filter=tool)
+    sessions = storage.list_sessions(limit=limit, tool_filter=tool, tag_filter=tag)
 
     if json_output:
         # Output structured JSON for agent consumption
@@ -1161,6 +1177,7 @@ def logs_list(
                 "rounds": len(s.rounds),
                 "is_complete": s.is_complete,
                 "created_at": s.created_at.isoformat(),
+                "tags": s.tags,
             }
             for s in sessions
         ]
@@ -1179,16 +1196,19 @@ def logs_list(
     table.add_column("Mode")
     table.add_column("Agents", justify="right")
     table.add_column("Rounds", justify="right")
+    table.add_column("Tags")
     table.add_column("Status")
 
     for session in sessions:
         status = "[green]✓[/green]" if session.is_complete else "[yellow]○[/yellow]"
+        tags_str = ", ".join(session.tags) if session.tags else "-"
         table.add_row(
             session.display_id,
             session.tool,
             session.mode,
             str(session.agent_count),
             str(len(session.rounds)),
+            tags_str,
             status,
         )
 

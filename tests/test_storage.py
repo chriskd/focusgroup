@@ -258,6 +258,26 @@ class TestSessionStorage:
         sessions = storage.list_sessions(tool_filter="beads")
         assert len(sessions) == 1
 
+    def test_list_sessions_tag_filter(self, storage: SessionStorage):
+        """List filters by tag."""
+        session1 = SessionLog(id="sess1", tool="mx", tags=["release-prep", "urgent"])
+        session2 = SessionLog(id="sess2", tool="beads", tags=["release-prep"])
+        session3 = SessionLog(id="sess3", tool="mx", tags=["backlog"])
+
+        storage.save(session1)
+        storage.save(session2)
+        storage.save(session3)
+
+        sessions = storage.list_sessions(tag_filter="release-prep")
+        assert len(sessions) == 2
+
+        sessions = storage.list_sessions(tag_filter="urgent")
+        assert len(sessions) == 1
+        assert sessions[0].id == "sess1"
+
+        sessions = storage.list_sessions(tag_filter="nonexistent")
+        assert len(sessions) == 0
+
     def test_list_sessions_skips_malformed(
         self, storage: SessionStorage, sample_session: SessionLog
     ):

@@ -227,7 +227,7 @@ class TestLogsCommands:
 
         runner.invoke(app, ["logs", "list", "--limit", "5"])
 
-        mock_storage.list_sessions.assert_called_with(limit=5, tool_filter=None)
+        mock_storage.list_sessions.assert_called_with(limit=5, tool_filter=None, tag_filter=None)
 
     def test_logs_list_with_tool_filter(self, monkeypatch):
         """Logs list respects --tool option."""
@@ -237,7 +237,19 @@ class TestLogsCommands:
 
         runner.invoke(app, ["logs", "list", "--tool", "mx"])
 
-        mock_storage.list_sessions.assert_called_with(limit=10, tool_filter="mx")
+        mock_storage.list_sessions.assert_called_with(limit=10, tool_filter="mx", tag_filter=None)
+
+    def test_logs_list_with_tag_filter(self, monkeypatch):
+        """Logs list respects --tag option."""
+        mock_storage = MagicMock()
+        mock_storage.list_sessions.return_value = []
+        monkeypatch.setattr("focusgroup.cli.get_default_storage", lambda: mock_storage)
+
+        runner.invoke(app, ["logs", "list", "--tag", "release-prep"])
+
+        mock_storage.list_sessions.assert_called_with(
+            limit=10, tool_filter=None, tag_filter="release-prep"
+        )
 
     def test_logs_show_not_found(self, monkeypatch):
         """Logs show with non-existent session shows error."""

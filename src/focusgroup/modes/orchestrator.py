@@ -87,6 +87,7 @@ class SessionOrchestrator:
         tool: Tool,
         storage: SessionStorage | None = None,
         context: str | None = None,
+        tags: list[str] | None = None,
     ) -> None:
         """Initialize the session orchestrator.
 
@@ -96,6 +97,7 @@ class SessionOrchestrator:
             storage: Optional storage backend (defaults to file storage)
             context: Explicit context string to provide to agents.
                      If provided, skips automatic tool.get_help() call.
+            tags: Optional list of tags for organizing the session.
         """
         self._config = config
         self._tool = tool
@@ -115,6 +117,7 @@ class SessionOrchestrator:
             tool=tool.command,
             mode=config.session.mode.value,
             agent_count=len(config.agents),
+            tags=tags or [],
         )
 
     @property
