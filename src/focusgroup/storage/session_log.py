@@ -56,6 +56,29 @@ class SessionLog(BaseModel):
         return self.completed_at is not None
 
 
+def _get_default_log_dir() -> Path:
+    """Get the default log directory following XDG Base Directory spec.
+
+    Uses $FOCUSGROUP_LOG_DIR if set, otherwise $XDG_DATA_HOME/focusgroup/logs,
+    falling back to ~/.local/share/focusgroup/logs.
+
+    Returns:
+        Path to the log directory
+    """
+    import os
+
+    # Allow override via environment variable
+    if env_dir := os.environ.get("FOCUSGROUP_LOG_DIR"):
+        return Path(env_dir)
+
+    # Use XDG_DATA_HOME if set, otherwise ~/.local/share
+    data_home = os.environ.get("XDG_DATA_HOME")
+    if data_home:
+        return Path(data_home) / "focusgroup" / "logs"
+
+    return Path.home() / ".local" / "share" / "focusgroup" / "logs"
+
+
 class SessionStorage:
     """Handles persistence of session logs to disk."""
 
@@ -63,10 +86,10 @@ class SessionStorage:
         """Initialize storage with a base directory.
 
         Args:
-            base_dir: Directory to store sessions. Defaults to ~/.focusgroup/sessions
+            base_dir: Directory to store sessions. Defaults to XDG data directory.
         """
         if base_dir is None:
-            base_dir = Path.home() / ".focusgroup" / "sessions"
+            base_dir = _get_default_log_dir()
         self.base_dir = base_dir
         self.base_dir.mkdir(parents=True, exist_ok=True)
 

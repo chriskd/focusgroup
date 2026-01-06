@@ -335,10 +335,10 @@ class TestGetDefaultStorage:
         assert storage.base_dir.is_dir()
 
     def test_default_storage_path(self):
-        """Default storage is in ~/.focusgroup/sessions."""
+        """Default storage is in XDG data directory (logs)."""
         storage = get_default_storage()
         assert "focusgroup" in str(storage.base_dir)
-        assert "sessions" in str(storage.base_dir)
+        assert "logs" in str(storage.base_dir)
 
 
 class TestSessionRoundTrip:
