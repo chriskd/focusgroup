@@ -660,6 +660,22 @@ def ask(
             "Useful for previewing --explore prompts.",
         ),
     ] = False,
+    yes: Annotated[
+        bool,
+        typer.Option(
+            "--yes",
+            "-y",
+            help="Skip cost confirmation prompts.",
+        ),
+    ] = False,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Show detailed output including agent command invocations and errors.",
+        ),
+    ] = False,
 ) -> None:
     """Quick ad-hoc query to an agent panel about a tool.
 
@@ -681,6 +697,26 @@ def ask(
         _show_dry_run(effective_tool, question, resolved_context, explore)
         return
 
+    # Cost estimation and confirmation
+    from focusgroup.costs import estimate_cost, should_confirm
+
+    estimate = estimate_cost(
+        agent_count=agents,
+        provider=provider,
+        exploration=explore,
+        synthesis=synthesize_with is not None,
+    )
+
+    if should_confirm(estimate) and not yes:
+        console.print("\n[yellow]⚠ Cost Warning[/yellow]")
+        console.print(f"Running {estimate.format_short()}")
+        if estimate.warnings:
+            for warning in estimate.warnings:
+                console.print(f"  [dim]{warning}[/dim]")
+        if not typer.confirm("Continue?", default=True):
+            console.print("[dim]Cancelled.[/dim]")
+            raise typer.Exit(0)
+
     asyncio.run(
         _ask_impl(
             effective_tool,
@@ -694,6 +730,7 @@ def ask(
             synthesize_with,
             timeout,
             tag or [],
+            verbose=verbose,
         )
     )
 
@@ -741,6 +778,7 @@ async def _ask_impl(
     synthesize_with: str | None = None,
     timeout: int | None = None,
     tags: list[str] | None = None,
+    verbose: bool = False,
 ) -> None:
     """Implementation of the ask command."""
     # Parse --synthesize-with into moderator config
@@ -814,19 +852,43 @@ async def _ask_impl(
     cli_tool = create_cli_tool(tool)
 
     # Run the session with explicit context
-    orchestrator = SessionOrchestrator(fg_config, cli_tool, context=context, tags=tags)
+    orchestrator = SessionOrchestrator(
+        fg_config, cli_tool, context=context, tags=tags, verbose=verbose
+    )
 
     async def run_with_orchestrator() -> None:
         """Run orchestrator setup and session."""
+        from focusgroup.agents.base import AgentError
+
         try:
             await orchestrator.setup()
+        except AgentError as e:
+            console.print(f"[red]Setup failed: {e}[/red]")
+            if verbose and e.agent_name:
+                console.print(f"[dim]Agent: {e.agent_name}[/dim]")
+            raise typer.Exit(1) from None
         except Exception as e:
             console.print(f"[red]Setup failed: {e}[/red]")
+            if verbose:
+                import traceback
+
+                console.print(f"[dim]{traceback.format_exc()}[/dim]")
             raise typer.Exit(1) from None
 
-        async for _result in orchestrator.run_session():
-            # Results stream in, but we wait for all
-            pass
+        try:
+            async for _result in orchestrator.run_session():
+                if verbose:
+                    # Show per-agent timing info
+                    for resp in _result.responses:
+                        latency = f"{resp.latency_ms:.0f}ms" if resp.latency_ms else "N/A"
+                        console.print(
+                            f"[dim]  {resp.agent_name}: {len(resp.content)} chars, {latency}[/dim]"
+                        )
+        except AgentError as e:
+            console.print(f"[red]Agent error: {e}[/red]")
+            if verbose and e.agent_name:
+                console.print(f"[dim]Agent: {e.agent_name}[/dim]")
+            raise typer.Exit(1) from None
 
     if _plain_mode:
         console.print(f"Setting up with {len(fg_config.agents)} agents...")
@@ -840,14 +902,35 @@ async def _ask_impl(
             transient=True,
         ) as progress:
             progress.add_task(f"Setting up with {len(fg_config.agents)} agents...", total=None)
+            from focusgroup.agents.base import AgentError
+
             try:
                 await orchestrator.setup()
+            except AgentError as e:
+                console.print(f"[red]Setup failed: {e}[/red]")
+                if verbose and e.agent_name:
+                    console.print(f"[dim]Agent: {e.agent_name}[/dim]")
+                raise typer.Exit(1) from None
             except Exception as e:
                 console.print(f"[red]Setup failed: {e}[/red]")
+                if verbose:
+                    import traceback
+
+                    console.print(f"[dim]{traceback.format_exc()}[/dim]")
                 raise typer.Exit(1) from None
             progress.add_task(f"Asking about {tool}...", total=None)
-            async for _result in orchestrator.run_session():
-                pass
+            try:
+                async for _result in orchestrator.run_session():
+                    if verbose:
+                        for resp in _result.responses:
+                            latency = f"{resp.latency_ms:.0f}ms" if resp.latency_ms else "N/A"
+                            msg = f"  {resp.agent_name}: {len(resp.content)} chars, {latency}"
+                            console.print(f"[dim]{msg}[/dim]")
+            except AgentError as e:
+                console.print(f"[red]Agent error: {e}[/red]")
+                if verbose and e.agent_name:
+                    console.print(f"[dim]Agent: {e.agent_name}[/dim]")
+                raise typer.Exit(1) from None
 
     # Save the session
     session_path = orchestrator.save()
@@ -1816,6 +1899,94 @@ def doctor(
     else:
         console.print("[yellow]Some providers are not installed[/yellow]")
         console.print("[dim]Install missing providers to use them in sessions.[/dim]")
+
+
+# --- Demo command ---
+
+DEMO_EXAMPLES = """
+[bold]Examples:[/bold]
+
+  Run a quick demo with defaults:
+  [dim]$ focusgroup demo[/dim]
+
+  Use a different provider:
+  [dim]$ focusgroup demo --provider codex[/dim]
+
+  Ask a custom question about focusgroup:
+  [dim]$ focusgroup demo --question "What would make this tool easier for agents to use?"[/dim]
+"""
+
+
+@app.command(epilog=DEMO_EXAMPLES)
+def demo(
+    provider: Annotated[
+        str,
+        typer.Option("--provider", "-p", help="Agent provider: claude or codex"),
+    ] = "claude",
+    question: Annotated[
+        str | None,
+        typer.Option("--question", "-q", help="Custom question to ask about focusgroup"),
+    ] = None,
+    yes: Annotated[
+        bool,
+        typer.Option(
+            "--yes",
+            "-y",
+            help="Skip cost confirmation prompts.",
+        ),
+    ] = False,
+) -> None:
+    """Run a self-referential demo of focusgroup.
+
+    Runs focusgroup against itself - asks an agent to review focusgroup's
+    own --help output. This is a quick way to see what focusgroup does
+    and demonstrate dogfooding.
+    """
+    default_question = (
+        "What's your first impression of this tool? "
+        "Is the help output clear? What would you improve?"
+    )
+    final_question = question or default_question
+
+    # Cost check for demo (single agent, simple query)
+    from focusgroup.costs import estimate_cost, should_confirm
+
+    estimate = estimate_cost(
+        agent_count=1,
+        provider=provider,
+        exploration=False,
+        synthesis=False,
+    )
+
+    if should_confirm(estimate) and not yes:
+        console.print("\n[yellow]⚠ Cost Warning[/yellow]")
+        console.print(f"Running {estimate.format_short()}")
+        if not typer.confirm("Continue?", default=True):
+            console.print("[dim]Cancelled.[/dim]")
+            raise typer.Exit(0)
+
+    console.print("\n[bold]Focusgroup Demo[/bold]")
+    console.print("[dim]Asking an agent to review focusgroup's own --help...[/dim]\n")
+
+    # Build the context by running focusgroup --help
+    context = "focusgroup --help"
+
+    asyncio.run(
+        _ask_impl(
+            tool="focusgroup",
+            question=final_question,
+            context=resolve_context(context),
+            config_path=None,
+            num_agents=1,
+            output_format="text",
+            provider_str=provider,
+            explore=False,
+            synthesize_with=None,
+            timeout=None,
+            tags=["demo"],
+            verbose=False,
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -906,3 +906,102 @@ class TestDoctorCommand:
         assert "✓" in result.stdout  # claude succeeded
         assert "✗" in result.stdout  # codex failed
         assert "Some providers are not installed" in result.stdout
+
+
+class TestDemoCommand:
+    """Test 'demo' command."""
+
+    def test_demo_help(self):
+        """Demo command shows help."""
+        result = runner.invoke(app, ["demo", "--help"])
+        assert result.exit_code == 0
+        assert "self-referential demo" in result.stdout.lower()
+        assert "--provider" in result.stdout
+        assert "--question" in result.stdout
+
+    @patch("focusgroup.cli.asyncio.run")
+    def test_demo_invokes_ask(self, mock_run):
+        """Demo command invokes the ask implementation."""
+        mock_run.return_value = None
+        result = runner.invoke(app, ["demo", "--yes"])
+
+        assert result.exit_code == 0
+        assert "Demo" in result.stdout
+        mock_run.assert_called_once()
+
+    @patch("focusgroup.cli.asyncio.run")
+    def test_demo_custom_question(self, mock_run):
+        """Demo accepts custom question."""
+        mock_run.return_value = None
+        result = runner.invoke(
+            app,
+            ["demo", "--question", "What is best?", "--yes"],
+        )
+
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+
+    @patch("focusgroup.cli.asyncio.run")
+    def test_demo_custom_provider(self, mock_run):
+        """Demo accepts custom provider."""
+        mock_run.return_value = None
+        result = runner.invoke(app, ["demo", "--provider", "codex", "--yes"])
+
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+
+
+class TestCostWarning:
+    """Test cost warning and --yes flag."""
+
+    @patch("focusgroup.cli.asyncio.run")
+    def test_ask_with_yes_flag_skips_prompt(self, mock_run):
+        """Ask with --yes skips cost confirmation."""
+        mock_run.return_value = None
+        # High agent count would normally trigger confirmation
+        result = runner.invoke(
+            app,
+            [
+                "ask",
+                "Test?",
+                "--context",
+                "echo test",
+                "--agents",
+                "10",
+                "--yes",
+            ],
+        )
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+
+    @patch("focusgroup.cli.asyncio.run")
+    def test_ask_low_cost_no_confirmation(self, mock_run):
+        """Ask with low cost doesn't require confirmation."""
+        mock_run.return_value = None
+        # Single agent, no exploration - should be below threshold
+        result = runner.invoke(
+            app,
+            ["ask", "Test?", "--context", "echo test", "--agents", "1"],
+        )
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+
+
+class TestVerboseFlag:
+    """Test --verbose flag on ask command."""
+
+    def test_ask_accepts_verbose_flag(self):
+        """Ask command accepts --verbose flag."""
+        result = runner.invoke(app, ["ask", "--help"])
+        assert "--verbose" in result.stdout or "-v" in result.stdout
+
+    @patch("focusgroup.cli.asyncio.run")
+    def test_ask_verbose_runs_successfully(self, mock_run):
+        """Ask with --verbose runs successfully."""
+        mock_run.return_value = None
+        result = runner.invoke(
+            app,
+            ["ask", "Test?", "--context", "echo test", "--verbose"],
+        )
+        assert result.exit_code == 0
+        mock_run.assert_called_once()

@@ -88,6 +88,7 @@ class SessionOrchestrator:
         storage: SessionStorage | None = None,
         context: str | None = None,
         tags: list[str] | None = None,
+        verbose: bool = False,
     ) -> None:
         """Initialize the session orchestrator.
 
@@ -98,11 +99,13 @@ class SessionOrchestrator:
             context: Explicit context string to provide to agents.
                      If provided, skips automatic tool.get_help() call.
             tags: Optional list of tags for organizing the session.
+            verbose: Enable verbose output for debugging agent failures.
         """
         self._config = config
         self._tool = tool
         self._storage = storage or get_default_storage()
         self._explicit_context = context
+        self._verbose = verbose
 
         # Will be initialized in setup()
         self._agents: list[BaseAgent] = []
