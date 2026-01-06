@@ -8,7 +8,15 @@ When building CLI tools that AI agents will consume (like `memex`, `bd`, or cust
 
 **Install:**
 ```bash
-pip install focusgroup  # or: uv pip install -e ".[dev]" for dev setup
+# Option 1: Run directly with uvx (no install needed)
+uvx --from git+https://github.com/chriskd/focusgroup focusgroup --help
+
+# Option 2: Install as a tool
+uv tool install git+https://github.com/chriskd/focusgroup
+
+# Option 3: Clone and install for development
+git clone https://github.com/chriskd/focusgroup && cd focusgroup
+uv pip install -e ".[dev]"
 ```
 
 **Run:**
@@ -50,11 +58,15 @@ focusgroup demo
 Requires Python 3.11+ and [uv](https://github.com/astral-sh/uv):
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourorg/focusgroup.git
-cd focusgroup
+# Quick: run without installing
+uvx --from git+https://github.com/chriskd/focusgroup focusgroup --help
 
-# Install with dev dependencies
+# Install as a persistent tool
+uv tool install git+https://github.com/chriskd/focusgroup
+
+# Or clone for development
+git clone https://github.com/chriskd/focusgroup.git
+cd focusgroup
 uv pip install -e ".[dev]"
 ```
 
