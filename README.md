@@ -49,6 +49,12 @@ focusgroup ask "What improvements would help agents use this?" -x "mytool --help
 # Let agents actually run the tool (exploration mode)
 focusgroup ask "Try common workflows" -x "mytool --help" --explore
 
+# JSON output for piping (status messages suppressed)
+focusgroup ask "Review this" -x "mytool --help" -o json | jq .
+
+# Quiet mode for automation (suppress all status messages)
+focusgroup --quiet ask "Review" -x "mytool --help" -o json > output.json
+
 # Dogfood: review focusgroup itself
 focusgroup demo
 ```
@@ -91,15 +97,20 @@ See the [Agent Providers Guide](https://chriskd.github.io/focusgroup/providers) 
 Get instant feedback without a config file:
 
 ```bash
-# Basic usage
-focusgroup ask <tool> "<question>"
+# Basic usage - context is required via -x
+focusgroup ask "<question>" -x "<context>"
+
+# Context can be a command, file (@path), or stdin (-)
+focusgroup ask "Is this help clear?" -x "mx --help"
+focusgroup ask "Review this API" -x "@README.md"
+cat docs.md | focusgroup ask "What's missing?" -x -
 
 # Options
-focusgroup ask mx "How would you search for docs?" \
-  --agents 5 \           # Number of agents (default: 3)
-  --provider openai \    # Provider: claude, openai, codex
-  --output markdown \    # Format: text, markdown, json
-  --explore \            # Let agents run the tool
+focusgroup ask "How would you search for docs?" -x "mx --help" \
+  --agents 5 \              # Number of agents (default: 3)
+  --provider codex \        # Provider: claude (default) or codex
+  --output markdown \       # Format: text, markdown, json
+  --explore \               # Let agents run the tool
   --synthesize-with claude  # Have a moderator summarize
 ```
 
@@ -149,7 +160,7 @@ The `configs/examples/` directory contains ready-to-use templates:
 Full documentation is available at **[chriskd.github.io/focusgroup](https://chriskd.github.io/focusgroup/)**:
 
 - [Configuration Reference](https://chriskd.github.io/focusgroup/configuration) - Full config file schema
-- [Agent Providers Guide](https://chriskd.github.io/focusgroup/providers) - Claude, OpenAI, Codex setup
+- [Agent Providers Guide](https://chriskd.github.io/focusgroup/providers) - Claude and Codex setup
 - [Session Modes](https://chriskd.github.io/focusgroup/modes) - When to use each mode
 - [Exploration Mode](https://chriskd.github.io/focusgroup/exploration) - Letting agents run tools
 - [CLI PATH Lookup](https://chriskd.github.io/focusgroup/cli-path-lookup) - How focusgroup finds CLI tools
