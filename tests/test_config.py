@@ -336,10 +336,12 @@ class TestConfigDirectories:
         assert "agents" in str(agents_dir)
 
     def test_list_agent_presets_empty(self, monkeypatch, tmp_path: Path):
-        """List presets returns empty when none exist."""
+        """List presets returns empty when none exist (with bundled disabled)."""
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
         monkeypatch.setattr("focusgroup.config.get_agents_dir", lambda: agents_dir)
+        # Disable bundled presets to test user presets in isolation
+        monkeypatch.setattr("focusgroup.config._get_bundled_presets", lambda: {})
 
         presets = list_agent_presets()
         assert presets == []
@@ -355,6 +357,8 @@ class TestConfigDirectories:
         (agents_dir / "not_toml.txt").write_text("ignored")
 
         monkeypatch.setattr("focusgroup.config.get_agents_dir", lambda: agents_dir)
+        # Disable bundled presets to test user presets in isolation
+        monkeypatch.setattr("focusgroup.config._get_bundled_presets", lambda: {})
 
         presets = list_agent_presets()
         names = [name for name, _ in presets]

@@ -20,6 +20,7 @@ from focusgroup.config import (
     SessionConfig,
     ToolConfig,
     get_agents_dir,
+    get_preset_path,
     list_agent_presets,
     load_agent_preset,
     load_config,
@@ -41,6 +42,21 @@ MAIN_EPILOG = """
 
   [cyan]--explore[/cyan] (-e)      Let agents run the tool interactively
   [cyan]--synthesize-with[/cyan]   Add a moderator to synthesize responses
+
+[bold]Exploration Mode (--explore):[/bold]
+
+  When enabled, agents can execute the tool directly to explore its behavior.
+
+  What agents can do:
+  - Run the target tool with any arguments
+  - Execute shell commands via the provider CLI
+  - Read files and inspect output
+
+  Working directory: Inherits from focusgroup process
+  Timeout: 300s (vs 120s default), configurable via --timeout
+  Safety: Uses provider CLI's permission model (claude/codex)
+
+  Best for: Interactive testing, workflow validation, edge case discovery
 
 [bold]Quick Start:[/bold]
 
@@ -115,7 +131,8 @@ def _generate_config_toml(
     ]
 
     if exploration:
-        lines.append("exploration = true          # Allow agents to run the tool")
+        lines.append("exploration = true          # Agents can run the tool interactively")
+        lines.append("# agent_timeout = 300       # Default for exploration; customize if needed")
 
     if moderator:
         lines.append("moderator = true            # Enable synthesis at the end")
@@ -292,8 +309,11 @@ def init(
         )
 
         # Exploration
+        console.print("\n[dim]Exploration mode lets agents run the tool directly.[/dim]")
+        console.print("[dim]They can test commands, check output, and explore edge cases.[/dim]")
+        console.print("[dim]Timeout increases to 300s. Runs in current directory.[/dim]")
         final_exploration = typer.confirm(
-            "Enable exploration (agents can run the tool)?",
+            "Enable exploration mode?",
             default=False,
         )
 
@@ -522,7 +542,12 @@ def ask(
     ] = "claude",
     explore: Annotated[
         bool,
-        typer.Option("--explore", "-e", help="Enable exploration (agents can run tool)"),
+        typer.Option(
+            "--explore",
+            "-e",
+            help="Enable exploration mode: agents can run the tool interactively. "
+            "Timeout increases to 300s. Agents execute in current working directory.",
+        ),
     ] = False,
     synthesize_with: Annotated[
         str | None,
@@ -1043,15 +1068,15 @@ def agents_show(
     """Show details of an agent preset."""
     import json
 
-    agents_dir = get_agents_dir()
-    preset_path = agents_dir / f"{name}.toml"
+    # Look in both user and bundled presets
+    preset_path = get_preset_path(name)
 
-    if not preset_path.exists():
+    if not preset_path:
         if json_output:
             console.print(json.dumps({"error": f"Preset not found: {name}"}))
         else:
             console.print(f"[red]Preset not found: {name}[/red]")
-            console.print(f"[dim]Looked in: {preset_path}[/dim]")
+            console.print("[dim]Available presets: focusgroup agents list[/dim]")
         raise typer.Exit(1)
 
     try:

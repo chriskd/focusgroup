@@ -1,5 +1,6 @@
 """Configuration models and loading for focusgroup sessions."""
 
+import importlib.resources
 import tomllib
 from enum import Enum
 from pathlib import Path
@@ -193,17 +194,70 @@ def get_agents_dir() -> Path:
     return agents_dir
 
 
+def _get_bundled_presets() -> dict[str, Path]:
+    """Get bundled presets from the package.
+
+    Returns:
+        Dictionary mapping preset name to path within the package.
+    """
+    presets = {}
+    try:
+        # Use importlib.resources to find bundled presets
+        pkg_files = importlib.resources.files("focusgroup.presets")
+        for item in pkg_files.iterdir():
+            if item.name.endswith(".toml"):
+                name = item.name[:-5]  # Remove .toml suffix
+                # Get the actual path (works for both installed and dev)
+                presets[name] = Path(str(item))
+    except (ModuleNotFoundError, TypeError):
+        # Package not installed or presets dir doesn't exist
+        pass
+    return presets
+
+
 def list_agent_presets() -> list[tuple[str, Path]]:
     """List all available agent presets.
+
+    Includes both bundled presets (shipped with focusgroup) and user presets
+    from ~/.config/focusgroup/agents/. User presets override bundled ones
+    with the same name.
 
     Returns:
         List of (name, path) tuples for each preset
     """
+    # Start with bundled presets
+    presets = _get_bundled_presets()
+
+    # User presets override bundled ones
     agents_dir = get_agents_dir()
-    presets = []
     for path in agents_dir.glob("*.toml"):
-        presets.append((path.stem, path))
-    return sorted(presets)
+        presets[path.stem] = path
+
+    return sorted(presets.items())
+
+
+def get_preset_path(name: str) -> Path | None:
+    """Find the path to a preset by name.
+
+    Checks user presets first, then bundled presets.
+
+    Args:
+        name: The preset name (without .toml extension)
+
+    Returns:
+        Path to the preset file, or None if not found
+    """
+    # Check user presets first
+    user_path = get_agents_dir() / f"{name}.toml"
+    if user_path.exists():
+        return user_path
+
+    # Check bundled presets
+    bundled = _get_bundled_presets()
+    if name in bundled:
+        return bundled[name]
+
+    return None
 
 
 def get_providers_file() -> Path:

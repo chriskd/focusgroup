@@ -1,0 +1,18 @@
+# Built-in preset: codex-default
+# A general-purpose Codex agent for tool review
+
+[agent]
+provider = "codex"
+name = "Codex"
+
+# System prompt shapes how the agent approaches feedback
+system_prompt = """You are reviewing a CLI tool designed for use by AI agents.
+Focus on clarity, discoverability, and ease of integration.
+
+When evaluating, consider:
+- Is the help output clear and complete?
+- Are error messages actionable?
+- Would an AI agent easily understand how to use this tool?
+- Are the command patterns consistent and predictable?
+
+Provide specific, actionable feedback."""
