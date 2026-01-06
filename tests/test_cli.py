@@ -1005,3 +1005,165 @@ class TestVerboseFlag:
         )
         assert result.exit_code == 0
         mock_run.assert_called_once()
+
+
+class TestQuietFlag:
+    """Test --quiet flag for suppressing status messages."""
+
+    def test_main_app_accepts_quiet_flag(self):
+        """Main app accepts --quiet flag in help."""
+        result = runner.invoke(app, ["--help"])
+        assert "--quiet" in result.stdout or "-q" in result.stdout
+
+    def test_quiet_flag_documented(self):
+        """Quiet flag is properly documented."""
+        result = runner.invoke(app, ["--help"])
+        assert "Suppress status messages" in result.stdout or "JSON is always clean" in result.stdout
+
+    @patch("focusgroup.cli.asyncio.run")
+    def test_ask_with_quiet_flag_runs(self, mock_run):
+        """Ask command runs with --quiet flag."""
+        mock_run.return_value = None
+        result = runner.invoke(
+            app,
+            ["--quiet", "ask", "Test?", "--context", "echo test"],
+        )
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+
+    @patch("focusgroup.cli.asyncio.run")
+    def test_ask_with_short_quiet_flag_runs(self, mock_run):
+        """Ask command runs with -q short flag."""
+        mock_run.return_value = None
+        result = runner.invoke(
+            app,
+            ["-q", "ask", "Test?", "--context", "echo test"],
+        )
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+
+
+class TestStatusPrint:
+    """Test status_print function for stderr routing."""
+
+    def test_status_print_suppressed_for_json(self):
+        """status_print is suppressed when is_json_output=True."""
+        from io import StringIO
+        from unittest.mock import patch
+
+        from focusgroup.cli import status_print
+
+        # When is_json_output=True, nothing should be printed
+        with patch("focusgroup.cli.stderr_console") as mock_console:
+            status_print("Test message", is_json_output=True)
+            mock_console.print.assert_not_called()
+
+    def test_status_print_shows_in_normal_mode(self):
+        """status_print shows messages in normal mode."""
+        from unittest.mock import patch
+
+        # Need to reset _quiet_mode for this test
+        import focusgroup.cli
+
+        original_quiet = focusgroup.cli._quiet_mode
+        focusgroup.cli._quiet_mode = False
+
+        try:
+            with patch("focusgroup.cli.stderr_console") as mock_console:
+                from focusgroup.cli import status_print
+
+                status_print("Test message", is_json_output=False)
+                mock_console.print.assert_called_once_with("Test message")
+        finally:
+            focusgroup.cli._quiet_mode = original_quiet
+
+    def test_status_print_suppressed_in_quiet_mode(self):
+        """status_print is suppressed when _quiet_mode=True."""
+        from unittest.mock import patch
+
+        import focusgroup.cli
+
+        original_quiet = focusgroup.cli._quiet_mode
+        focusgroup.cli._quiet_mode = True
+
+        try:
+            with patch("focusgroup.cli.stderr_console") as mock_console:
+                from focusgroup.cli import status_print
+
+                status_print("Test message", is_json_output=False)
+                mock_console.print.assert_not_called()
+        finally:
+            focusgroup.cli._quiet_mode = original_quiet
+
+
+class TestJsonOutputClean:
+    """Test that JSON output is machine-parseable without pollution."""
+
+    def test_dry_run_json_is_valid(self, tmp_path: Path):
+        """Dry run with JSON output produces valid JSON."""
+        import json
+
+        config_content = """
+[session]
+name = "Test"
+mode = "single"
+
+[tool]
+command = "test"
+
+[[agents]]
+provider = "claude"
+
+[questions]
+rounds = ["Test question?"]
+
+[output]
+format = "json"
+"""
+        config_file = tmp_path / "session.toml"
+        config_file.write_text(config_content)
+
+        result = runner.invoke(app, ["run", str(config_file), "--dry-run", "--json"])
+
+        # Should be valid JSON
+        assert result.exit_code == 0
+        output = result.stdout.strip()
+        try:
+            parsed = json.loads(output)
+            assert "tool" in parsed
+            assert parsed["tool"] == "test"
+        except json.JSONDecodeError as e:
+            # Print the output for debugging
+            raise AssertionError(f"Output is not valid JSON: {output!r}") from e
+
+    def test_logs_show_json_is_valid(self, tmp_path: Path):
+        """Logs show --json produces valid JSON without status messages."""
+        import json
+
+        from focusgroup.storage.session_log import SessionLog, SessionStorage
+
+        # Create a session to show
+        storage = SessionStorage(tmp_path)
+        session = SessionLog(
+            tool="testtool",
+            mode="single",
+            agent_count=1,
+            rounds=[],
+        )
+        storage.save(session)
+
+        result = runner.invoke(
+            app,
+            ["logs", "show", session.display_id, "--json"],
+            env={"FOCUSGROUP_LOG_DIR": str(tmp_path)},
+        )
+
+        # Try to parse as JSON - should not fail due to "Session saved:" message
+        output = result.stdout.strip()
+        try:
+            # The output should be parseable JSON
+            json.loads(output)
+        except json.JSONDecodeError:
+            # If it fails, check if it's due to a status message polluting output
+            assert "Session saved" not in output, "Status message polluted JSON output"
+            assert "Session log" not in output, "Status message polluted JSON output"

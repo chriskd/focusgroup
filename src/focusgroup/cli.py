@@ -97,7 +97,12 @@ app.add_typer(logs_app, name="logs")
 # Plain mode flag - set by --plain/--no-rich callback
 _plain_mode: bool = False
 
+# Quiet mode flag - set by --quiet callback
+_quiet_mode: bool = False
+
 console = Console()
+# Separate console for stderr (used for status messages to keep stdout clean for piping)
+stderr_console = Console(stderr=True)
 
 
 # --- Init command ---
@@ -464,11 +469,33 @@ def version_callback(value: bool) -> None:
 
 def plain_callback(value: bool) -> None:
     """Enable plain text mode (no Rich formatting)."""
-    global _plain_mode, console
+    global _plain_mode, console, stderr_console
     if value:
         _plain_mode = True
         # Replace global console: interprets markup but outputs plain text (no colors)
         console = Console(force_terminal=False, no_color=True, highlight=False)
+        stderr_console = Console(stderr=True, force_terminal=False, no_color=True, highlight=False)
+
+
+def quiet_callback(value: bool) -> None:
+    """Enable quiet mode (suppress status messages)."""
+    global _quiet_mode
+    if value:
+        _quiet_mode = True
+
+
+def status_print(message: str, *, is_json_output: bool = False) -> None:
+    """Print a status message to stderr (to keep stdout clean).
+
+    In quiet mode or when JSON output is requested, status messages are suppressed.
+
+    Args:
+        message: The message to print (can include Rich markup)
+        is_json_output: Whether the main output is JSON (always suppress if True)
+    """
+    if _quiet_mode or is_json_output:
+        return
+    stderr_console.print(message)
 
 
 @app.callback()
@@ -485,6 +512,16 @@ def main(
             callback=plain_callback,
             is_eager=True,
             help="Disable Rich formatting (for CI/piping).",
+        ),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet",
+            "-q",
+            callback=quiet_callback,
+            is_eager=True,
+            help="Suppress status messages (progress, session saved, etc). JSON is always clean.",
         ),
     ] = False,
 ) -> None:
@@ -897,15 +934,17 @@ async def _ask_impl(
                 console.print(f"[dim]Agent: {e.agent_name}[/dim]")
             raise typer.Exit(1) from None
 
-    if _plain_mode:
-        console.print(f"Setting up with {len(fg_config.agents)} agents...")
-        console.print(f"Asking about {tool}...")
+    is_json = output_format.lower() == "json"
+
+    if _plain_mode or _quiet_mode:
+        status_print(f"Setting up with {len(fg_config.agents)} agents...", is_json_output=is_json)
+        status_print(f"Asking about {tool}...", is_json_output=is_json)
         await run_with_orchestrator()
     else:
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
-            console=console,
+            console=stderr_console,  # Use stderr for progress to keep stdout clean
             transient=True,
         ) as progress:
             progress.add_task(f"Setting up with {len(fg_config.agents)} agents...", total=None)
@@ -914,16 +953,16 @@ async def _ask_impl(
             try:
                 await orchestrator.setup()
             except AgentError as e:
-                console.print(f"[red]Setup failed: {e}[/red]")
+                stderr_console.print(f"[red]Setup failed: {e}[/red]")
                 if verbose and e.agent_name:
-                    console.print(f"[dim]Agent: {e.agent_name}[/dim]")
+                    stderr_console.print(f"[dim]Agent: {e.agent_name}[/dim]")
                 raise typer.Exit(1) from None
             except Exception as e:
-                console.print(f"[red]Setup failed: {e}[/red]")
+                stderr_console.print(f"[red]Setup failed: {e}[/red]")
                 if verbose:
                     import traceback
 
-                    console.print(f"[dim]{traceback.format_exc()}[/dim]")
+                    stderr_console.print(f"[dim]{traceback.format_exc()}[/dim]")
                 raise typer.Exit(1) from None
             progress.add_task(f"Asking about {tool}...", total=None)
             try:
@@ -932,23 +971,23 @@ async def _ask_impl(
                         for resp in _result.responses:
                             latency = f"{resp.latency_ms:.0f}ms" if resp.latency_ms else "N/A"
                             msg = f"  {resp.agent_name}: {len(resp.content)} chars, {latency}"
-                            console.print(f"[dim]{msg}[/dim]")
+                            stderr_console.print(f"[dim]{msg}[/dim]")
             except AgentError as e:
-                console.print(f"[red]Agent error: {e}[/red]")
+                stderr_console.print(f"[red]Agent error: {e}[/red]")
                 if verbose and e.agent_name:
-                    console.print(f"[dim]Agent: {e.agent_name}[/dim]")
+                    stderr_console.print(f"[dim]Agent: {e.agent_name}[/dim]")
                 raise typer.Exit(1) from None
 
     # Save the session
     session_path = orchestrator.save()
     session = orchestrator.session
 
-    # Output based on format
+    # Output based on format (is_json already defined above)
     formatted = format_session(session, output_format)
     console.print(formatted)
 
-    # Show where session was saved
-    console.print(f"\n[dim]Session saved: {session_path}[/dim]")
+    # Show where session was saved (on stderr for JSON to keep stdout clean)
+    status_print(f"\n[dim]Session saved: {session_path}[/dim]", is_json_output=is_json)
 
 
 RUN_EXAMPLES = """
@@ -1082,57 +1121,70 @@ async def _run_impl(config: FocusgroupConfig, output_dir: Path | None) -> None:
 
     # Run the session
     orchestrator = SessionOrchestrator(config, cli_tool)
+    is_json = config.output.format.lower() == "json"
 
-    if _plain_mode:
-        console.print("Setting up session...")
+    if _plain_mode or _quiet_mode:
+        status_print("Setting up session...", is_json_output=is_json)
         await orchestrator.setup()
         agent_count = len(orchestrator.agents)
-        console.print(f"Session initialized with {agent_count} agents\n")
+        status_print(f"Session initialized with {agent_count} agents\n", is_json_output=is_json)
 
         round_count = len(config.questions.rounds)
         for round_num, result in enumerate(await _collect_results(orchestrator)):
             prompt_preview = result.prompt[:60]
-            console.print(f"Round {round_num + 1}/{round_count}: {prompt_preview}...")
+            status_print(
+                f"Round {round_num + 1}/{round_count}: {prompt_preview}...", is_json_output=is_json
+            )
             for resp in result.responses:
-                console.print(f"  {resp.agent_name}: {len(resp.content)} chars")
+                msg = f"  {resp.agent_name}: {len(resp.content)} chars"
+                status_print(msg, is_json_output=is_json)
     else:
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
-            console=console,
+            console=stderr_console,  # Use stderr for progress to keep stdout clean
         ) as progress:
             setup_task = progress.add_task("Setting up session...", total=None)
             await orchestrator.setup()
             progress.remove_task(setup_task)
 
             agent_count = len(orchestrator.agents)
-            console.print(f"[green]✓[/green] Session initialized with {agent_count} agents\n")
+            status_print(
+                f"[green]✓[/green] Session initialized with {agent_count} agents\n",
+                is_json_output=is_json,
+            )
 
             round_count = len(config.questions.rounds)
             for round_num, result in enumerate(await _collect_results(orchestrator)):
                 prompt_preview = result.prompt[:60]
-                console.print(
-                    f"[bold]Round {round_num + 1}/{round_count}:[/bold] {prompt_preview}..."
+                status_print(
+                    f"[bold]Round {round_num + 1}/{round_count}:[/bold] {prompt_preview}...",
+                    is_json_output=is_json,
                 )
                 for resp in result.responses:
-                    console.print(f"  [cyan]{resp.agent_name}[/cyan]: {len(resp.content)} chars")
+                    status_print(
+                        f"  [cyan]{resp.agent_name}[/cyan]: {len(resp.content)} chars",
+                        is_json_output=is_json,
+                    )
 
     # Save the session
     session_path = orchestrator.save()
     session = orchestrator.session
 
-    console.print("\n[green]✓[/green] Session complete")
+    is_json = config.output.format.lower() == "json"
+
+    status_print("\n[green]✓[/green] Session complete", is_json_output=is_json)
 
     # Write output files if directory specified
     if output_dir:
         formatter = get_formatter(config.output.format)
-        ext = "json" if config.output.format == "json" else "md"
+        ext = "json" if is_json else "md"
         output_file = output_dir / f"{session.display_id}.{ext}"
         formatter.write(session, output_file)
-        console.print(f"[green]✓[/green] Report saved: {output_file}")
+        status_print(f"[green]✓[/green] Report saved: {output_file}", is_json_output=is_json)
 
-    # Always show where session log was saved
-    console.print(f"[dim]Session log: {session_path}[/dim]")
+    # Always show where session log was saved (on stderr for JSON)
+    status_print(f"[dim]Session log: {session_path}[/dim]", is_json_output=is_json)
 
     # Print final synthesis if available
     if session.final_synthesis:
