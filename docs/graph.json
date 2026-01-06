@@ -85,15 +85,11 @@
   "edges": [
     {
       "source": "modes",
-      "target": "configuration"
+      "target": "exploration"
     },
     {
       "source": "modes",
-      "target": "exploration"
-    },
-    {
-      "source": "configuration",
-      "target": "providers"
+      "target": "configuration"
     },
     {
       "source": "configuration",
@@ -104,11 +100,23 @@
       "target": "exploration"
     },
     {
+      "source": "configuration",
+      "target": "providers"
+    },
+    {
+      "source": "providers",
+      "target": "exploration"
+    },
+    {
       "source": "providers",
       "target": "configuration"
     },
     {
-      "source": "providers",
+      "source": "quick-start",
+      "target": "modes"
+    },
+    {
+      "source": "quick-start",
       "target": "exploration"
     },
     {
@@ -117,18 +125,6 @@
     },
     {
       "source": "quick-start",
-      "target": "configuration"
-    },
-    {
-      "source": "quick-start",
-      "target": "exploration"
-    },
-    {
-      "source": "quick-start",
-      "target": "modes"
-    },
-    {
-      "source": "json-formats",
       "target": "configuration"
     },
     {
@@ -140,16 +136,20 @@
       "target": "modes"
     },
     {
+      "source": "json-formats",
+      "target": "configuration"
+    },
+    {
       "source": "exploration",
       "target": "providers"
     },
     {
       "source": "structured-feedback",
-      "target": "configuration"
+      "target": "json-formats"
     },
     {
       "source": "structured-feedback",
-      "target": "json-formats"
+      "target": "configuration"
     }
   ]
 }
