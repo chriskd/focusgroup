@@ -120,11 +120,11 @@
     },
     {
       "source": "structured-feedback",
-      "target": "configuration"
+      "target": "json-formats"
     },
     {
       "source": "structured-feedback",
-      "target": "json-formats"
+      "target": "configuration"
     }
   ]
 }
