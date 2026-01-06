@@ -31,3 +31,6 @@ Thumbs.db
 
 # Memex indices (rebuild with: mx reindex)
 .memex-indices/
+
+# Devcontainer (machine-specific)
+.devcontainer/
