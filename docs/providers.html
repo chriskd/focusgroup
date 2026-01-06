@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Providers Guide - Memex</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/lunr@2.3.9/lunr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <a href="/" class="logo">
+                <div class="logo-mark"></div>
+                <div class="logo-text">Memex<span> / knowledge</span></div>
+            </a>
+
+            <div class="search-container">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" id="search-input" placeholder="Search knowledge base..." autocomplete="off">
+                <div id="search-results"></div>
+            </div>
+
+            <div class="header-nav">
+                <a href="/" class="nav-link active">Reader</a>
+                <a href="/graph.html" class="nav-link">Graph</a>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="tree">Browse</button>
+                <button class="nav-tab" data-tab="recent">Recent</button>
+            </div>
+
+            <div class="sidebar-section" id="tree-section">
+                <div class="sidebar-header">Categories</div>
+                <div class="tree" id="tree">
+            <a href="/cli-path-lookup.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">cli-path-lookup</span>
+            </a>
+            <a href="/configuration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">configuration</span>
+            </a>
+            <a href="/exploration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">exploration</span>
+            </a>
+            <a href="/json-formats.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">json-formats</span>
+            </a>
+            <a href="/modes.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">modes</span>
+            </a>
+            <a href="/providers.html" class="tree-item active">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">providers</span>
+            </a>
+            <a href="/structured-feedback.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">structured-feedback</span>
+            </a></div>
+            </div>
+
+            <div class="sidebar-section" id="recent-section" style="display: none;">
+                <div class="sidebar-header">Recent Updates</div>
+                <div class="tree" id="recent-list">
+            <a href="/modes.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">Session Modes</span>
+            </a>
+            <a href="/cli-path-lookup.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">CLI Tool PATH Lookup Behavior</span>
+            </a>
+            <a href="/configuration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">Configuration Reference</span>
+            </a>
+            <a href="/providers.html" class="tree-item active">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">Agent Providers Guide</span>
+            </a>
+            <a href="/json-formats.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">JSON Output Formats</span>
+            </a>
+            <a href="/exploration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">Exploration Mode</span>
+            </a>
+            <a href="/structured-feedback.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">Structured Feedback Schemas</span>
+            </a></div>
+            </div>
+            <div class="sidebar-footer">
+                <a href="https://github.com/chriskd/memex" target="_blank" rel="noopener">Powered by memex</a>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main">
+            
+<div class="reader-container">
+    <article class="entry">
+        <header class="entry-header">
+            <div class="entry-path">providers</div>
+            <h1 class="entry-title">Agent Providers Guide</h1>
+            <div class="entry-meta">
+                
+                <div class="entry-meta-item">Created: <span>2026-01-06 00:00:00</span></div>
+                
+            </div>
+            
+            <div class="entry-tags">
+                
+                <a href="/tags/focusgroup.html" class="tag">focusgroup</a>
+                
+                <a href="/tags/providers.html" class="tag">providers</a>
+                
+                <a href="/tags/agents.html" class="tag">agents</a>
+                
+            </div>
+            
+        </header>
+        <div class="entry-content">
+            <h1>Agent Providers Guide</h1>
+<p>Focusgroup supports multiple LLM providers via their CLI tools. This guide covers setup and best practices for each.</p>
+<h2>Overview</h2>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>CLI Tool</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude (Anthropic)</td>
+<td><code>claude</code></td>
+<td>General feedback, nuanced analysis</td>
+</tr>
+<tr>
+<td>Codex (OpenAI)</td>
+<td><code>codex</code></td>
+<td>Code-focused feedback, OpenAI perspective</td>
+</tr>
+</tbody>
+</table>
+<p>All agents operate in CLI mode, invoking the actual CLI tools. This provides authentic agent behavior—the same way agents really use tools.</p>
+<h2>Why CLI-Only?</h2>
+<p>Focusgroup deliberately uses only CLI-based agents rather than API calls or SDK integrations. This is a core design philosophy, not a limitation.</p>
+<h3>The Problem with Approximations</h3>
+<p>When you call an LLM API directly or use an agent SDK, you're not talking to &quot;the agent&quot;—you're talking to a model through your own harness. You control the system prompt, tool configurations, safety parameters, and context window management. The result is an <em>approximation</em> of an agent, not the real thing.</p>
+<p>Many agent implementations are closed-source. We don't know exactly how Claude Code, Codex, or other CLI agents are configured internally:</p>
+<ul>
+<li>What system prompts shape their behavior?</li>
+<li>What safety layers filter their responses?</li>
+<li>How do they manage context and tool use?</li>
+<li>What defaults and optimizations are baked in?</li>
+</ul>
+<p>These details significantly affect how agents interact with tools—and they're invisible when you roll your own integration.</p>
+<h3>Authentic Feedback from Real Customers</h3>
+<p>Focusgroup exists to get feedback on tools designed for AI agents. The agents <em>are</em> the customers. When evaluating a CLI tool that agents will use, you want feedback from:</p>
+<ul>
+<li>The actual agent as its provider ships it</li>
+<li>With its real configuration and behaviors</li>
+<li>Using the same interface it would use in production</li>
+</ul>
+<p>You don't want feedback from a simulation you cobbled together using API calls—that feedback reflects your harness, not the agent's actual experience.</p>
+<h3>CLI Tools as Ground Truth</h3>
+<p>CLI tools like <code>claude</code> and <code>codex</code> represent the most accurate form of each agent as its provider intends it to operate. By invoking these tools directly, focusgroup captures:</p>
+<ul>
+<li>Authentic agent reasoning and interaction patterns</li>
+<li>Real-world tool use behavior</li>
+<li>Provider-intended safety and capability boundaries</li>
+</ul>
+<p>This means focusgroup feedback reflects what agents will <em>actually</em> do with your tool, not what a bespoke API integration might do.</p>
+<h2>Claude (Anthropic)</h2>
+<p>Invokes the actual <code>claude</code> CLI tool, providing authentic agent behavior.</p>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash"># Install Claude Code CLI
+# See: https://docs.anthropic.com/claude-code
+
+# Authenticate
+claude auth login
+</code></pre>
+<p><strong>Config:</strong></p>
+<pre><code class="language-toml">[[agents]]
+provider = &quot;claude&quot;
+name = &quot;Claude&quot;
+</code></pre>
+<p><strong>When to use Claude:</strong></p>
+<ul>
+<li>Testing how agents actually interact with tools</li>
+<li>Getting feedback that reflects real-world agent usage</li>
+<li>When you want the agent to use its full toolset (file reading, web access, etc.)</li>
+</ul>
+<h2>Codex (OpenAI)</h2>
+<p>Invokes the OpenAI Codex CLI for code-focused feedback.</p>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash"># Install Codex CLI
+# See OpenAI's codex documentation
+
+# Authenticate
+codex auth
+</code></pre>
+<p><strong>Config:</strong></p>
+<pre><code class="language-toml">[[agents]]
+provider = &quot;codex&quot;
+name = &quot;Codex&quot;
+</code></pre>
+<p><strong>When to use Codex:</strong></p>
+<ul>
+<li>Getting code-focused feedback</li>
+<li>Testing CLI tools that agents interact with programmatically</li>
+<li>When you want an OpenAI-based CLI agent perspective</li>
+</ul>
+<h2>Mixing Providers</h2>
+<p>A key strength of focusgroup is combining multiple providers for diverse perspectives:</p>
+<pre><code class="language-toml">[[agents]]
+provider = &quot;claude&quot;
+name = &quot;Claude-1&quot;
+system_prompt = &quot;Focus on UX and ergonomics.&quot;
+
+[[agents]]
+provider = &quot;claude&quot;
+name = &quot;Claude-2&quot;
+system_prompt = &quot;Focus on correctness and edge cases.&quot;
+
+[[agents]]
+provider = &quot;codex&quot;
+name = &quot;Codex&quot;
+# Code-focused perspective
+</code></pre>
+<h2>System Prompts</h2>
+<p>Customize agent perspectives with system prompts:</p>
+<pre><code class="language-toml">[[agents]]
+provider = &quot;claude&quot;
+name = &quot;DevOps-Engineer&quot;
+system_prompt = &quot;&quot;&quot;You are an experienced DevOps engineer who values:
+- Reliability and operational simplicity
+- Clear error messages and debugging support
+- Consistent behavior across environments
+
+Focus on operational concerns when evaluating this tool.&quot;&quot;&quot;
+
+[[agents]]
+provider = &quot;claude&quot;
+name = &quot;Junior-Developer&quot;
+system_prompt = &quot;&quot;&quot;You are a junior developer who is:
+- Still learning CLI conventions
+- Easily confused by complex options
+- Appreciative of good documentation and examples
+
+Evaluate this tool from a beginner's perspective.&quot;&quot;&quot;
+</code></pre>
+<p>See also: <a href="configuration.html" class="wikilink">configuration</a> for full config options, <a href="exploration.html" class="wikilink">exploration</a> for letting agents run tools.</p>
+<h2>Troubleshooting</h2>
+<h3>Claude CLI Issues</h3>
+<pre><code class="language-bash"># Verify Claude CLI is installed
+claude --version
+
+# Test authentication
+claude &quot;Hello, can you respond?&quot;
+</code></pre>
+<h3>Codex CLI Issues</h3>
+<pre><code class="language-bash"># Verify Codex CLI is installed
+codex --version
+
+# Test authentication
+codex &quot;Hello&quot;
+</code></pre>
+
+        </div>
+    </article>
+</div>
+        </main>
+
+        <!-- Right panel -->
+        <aside class="panel">
+            
+        <div class="panel-section">
+            <div class="panel-header">Outgoing Links</div>
+            <ul class="link-list">
+                <li class="link-item">
+                    <a href="/configuration.html">
+                        <div class="link-title">Configuration Reference</div>
+                        <div class="link-path">configuration</div>
+                    </a>
+                </li>
+                <li class="link-item">
+                    <a href="/exploration.html">
+                        <div class="link-title">Exploration Mode</div>
+                        <div class="link-path">exploration</div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="panel-section">
+            <div class="panel-header">Backlinks</div>
+            <ul class="link-list">
+                <li class="link-item">
+                    <a href="/configuration.html">
+                        <div class="link-title">Configuration Reference</div>
+                        <div class="link-path">configuration</div>
+                    </a>
+                </li>
+                <li class="link-item">
+                    <a href="/exploration.html">
+                        <div class="link-title">Exploration Mode</div>
+                        <div class="link-path">exploration</div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        </aside>
+    </div>
+
+    <script>window.BASE_URL = "";</script>
+    <script src="/assets/search.js"></script>
+    <script src="/assets/sidebar.js"></script>
+    <script>hljs.highlightAll(); mermaid.initialize({startOnLoad: true, theme: 'dark'});</script>
+</body>
+</html>

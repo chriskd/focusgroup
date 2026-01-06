@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tag: reference - Memex</title>
+    <title>CLI Tool PATH Lookup Behavior - Memex</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
@@ -48,7 +48,7 @@
             <div class="sidebar-section" id="tree-section">
                 <div class="sidebar-header">Categories</div>
                 <div class="tree" id="tree">
-            <a href="/cli-path-lookup.html" class="tree-item">
+            <a href="/cli-path-lookup.html" class="tree-item active">
                 <span class="tree-icon file">◇</span>
                 <span class="tree-label">cli-path-lookup</span>
             </a>
@@ -85,7 +85,7 @@
                 <span class="tree-icon file">◇</span>
                 <span class="tree-label">Session Modes</span>
             </a>
-            <a href="/cli-path-lookup.html" class="tree-item">
+            <a href="/cli-path-lookup.html" class="tree-item active">
                 <span class="tree-icon file">◇</span>
                 <span class="tree-label">CLI Tool PATH Lookup Behavior</span>
             </a>
@@ -118,20 +118,72 @@
         <!-- Main content -->
         <main class="main">
             
-<div class="tag-page-container">
-    <h1>Tag: reference</h1>
-    <p class="tag-count">1 entries</p>
-    <ul class="entry-list">
-        
-        <li>
-            <a href="/configuration.html">Configuration Reference</a>
+<div class="reader-container">
+    <article class="entry">
+        <header class="entry-header">
+            <div class="entry-path">cli-path-lookup</div>
+            <h1 class="entry-title">CLI Tool PATH Lookup Behavior</h1>
+            <div class="entry-meta">
+                
+                <div class="entry-meta-item">Created: <span>2026-01-06 00:00:00</span></div>
+                
+            </div>
             
-            <span class="entry-date">2026-01-06 00:00:00</span>
+            <div class="entry-tags">
+                
+                <a href="/tags/focusgroup.html" class="tag">focusgroup</a>
+                
+                <a href="/tags/configuration.html" class="tag">configuration</a>
+                
+                <a href="/tags/troubleshooting.html" class="tag">troubleshooting</a>
+                
+            </div>
             
-        </li>
-        
-    </ul>
-    <p class="back-link"><a href="/">← Back to index</a></p>
+        </header>
+        <div class="entry-content">
+            <h1>CLI Tool PATH Lookup Behavior</h1>
+<p>Focusgroup invokes external CLI tools (<code>claude</code>, <code>codex</code>) via subprocess and relies on standard PATH resolution to locate them.</p>
+<h2>How It Works</h2>
+<p>When focusgroup needs to run an agent CLI:</p>
+<ol>
+<li><strong>PATH lookup</strong>: Uses Python's <code>shutil.which()</code> to verify the command exists</li>
+<li><strong>Subprocess execution</strong>: Runs the command directly via <code>asyncio.create_subprocess_exec()</code></li>
+<li><strong>Error on failure</strong>: Raises a clear error if the command is not found</li>
+</ol>
+<h2>Error Messages</h2>
+<p>If a CLI tool is not in PATH, you'll see errors like:</p>
+<pre><code>Claude CLI not found. Is it installed and in PATH?
+</code></pre>
+<pre><code>Codex CLI not found. Is it installed and in PATH?
+</code></pre>
+<h2>Solutions</h2>
+<h3>Option 1: Ensure CLIs are in PATH</h3>
+<p>Add the directory containing your CLI tools to your PATH environment variable:</p>
+<pre><code class="language-bash"># Add to ~/.bashrc or ~/.zshrc
+export PATH=&quot;$HOME/.local/bin:$PATH&quot;
+
+# Verify it works
+which claude
+which codex
+</code></pre>
+<h3>Option 2: Use absolute paths in configuration</h3>
+<p>If your CLIs are installed in non-standard locations, you can specify absolute paths in your focusgroup configuration file:</p>
+<pre><code class="language-toml">[agents.claude]
+command = &quot;/opt/anthropic/bin/claude&quot;
+
+[agents.codex]
+command = &quot;/usr/local/bin/codex&quot;
+</code></pre>
+<h2>Technical Details</h2>
+<p>The PATH lookup is implemented in two places:</p>
+<ul>
+<li><strong>CLITool class</strong> (<code>src/focusgroup/tools/cli.py</code>): General CLI wrapper using <code>shutil.which()</code></li>
+<li><strong>Agent implementations</strong> (<code>src/focusgroup/agents/claude.py</code>, <code>codex.py</code>): Direct subprocess calls</li>
+</ul>
+<p>Both raise descriptive errors when commands are not found, helping users diagnose PATH issues quickly.</p>
+
+        </div>
+    </article>
 </div>
         </main>
 
@@ -139,10 +191,15 @@
         <aside class="panel">
             
         <div class="panel-section">
-            <div class="panel-header">Tag Info</div>
-            <p class="empty-state">Entries tagged with this topic</p>
+            <div class="panel-header">Outgoing Links</div>
+            <ul class="link-list"><li class="empty-state">No outgoing links</li>
+            </ul>
         </div>
-    
+        <div class="panel-section">
+            <div class="panel-header">Backlinks</div>
+            <ul class="link-list"><li class="empty-state">No backlinks</li>
+            </ul>
+        </div>
         </aside>
     </div>
 

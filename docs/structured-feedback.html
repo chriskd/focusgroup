@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Structured Feedback Schemas - Memex</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/lunr@2.3.9/lunr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <a href="/" class="logo">
+                <div class="logo-mark"></div>
+                <div class="logo-text">Memex<span> / knowledge</span></div>
+            </a>
+
+            <div class="search-container">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" id="search-input" placeholder="Search knowledge base..." autocomplete="off">
+                <div id="search-results"></div>
+            </div>
+
+            <div class="header-nav">
+                <a href="/" class="nav-link active">Reader</a>
+                <a href="/graph.html" class="nav-link">Graph</a>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="tree">Browse</button>
+                <button class="nav-tab" data-tab="recent">Recent</button>
+            </div>
+
+            <div class="sidebar-section" id="tree-section">
+                <div class="sidebar-header">Categories</div>
+                <div class="tree" id="tree">
+            <a href="/cli-path-lookup.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">cli-path-lookup</span>
+            </a>
+            <a href="/configuration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">configuration</span>
+            </a>
+            <a href="/exploration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">exploration</span>
+            </a>
+            <a href="/json-formats.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">json-formats</span>
+            </a>
+            <a href="/modes.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">modes</span>
+            </a>
+            <a href="/providers.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">providers</span>
+            </a>
+            <a href="/structured-feedback.html" class="tree-item active">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">structured-feedback</span>
+            </a></div>
+            </div>
+
+            <div class="sidebar-section" id="recent-section" style="display: none;">
+                <div class="sidebar-header">Recent Updates</div>
+                <div class="tree" id="recent-list">
+            <a href="/modes.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">Session Modes</span>
+            </a>
+            <a href="/cli-path-lookup.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">CLI Tool PATH Lookup Behavior</span>
+            </a>
+            <a href="/configuration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">Configuration Reference</span>
+            </a>
+            <a href="/providers.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">Agent Providers Guide</span>
+            </a>
+            <a href="/json-formats.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">JSON Output Formats</span>
+            </a>
+            <a href="/exploration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">Exploration Mode</span>
+            </a>
+            <a href="/structured-feedback.html" class="tree-item active">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">Structured Feedback Schemas</span>
+            </a></div>
+            </div>
+            <div class="sidebar-footer">
+                <a href="https://github.com/chriskd/memex" target="_blank" rel="noopener">Powered by memex</a>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main">
+            
+<div class="reader-container">
+    <article class="entry">
+        <header class="entry-header">
+            <div class="entry-path">structured-feedback</div>
+            <h1 class="entry-title">Structured Feedback Schemas</h1>
+            <div class="entry-meta">
+                
+                <div class="entry-meta-item">Created: <span>2026-01-06 00:00:00</span></div>
+                
+            </div>
+            
+            <div class="entry-tags">
+                
+                <a href="/tags/focusgroup.html" class="tag">focusgroup</a>
+                
+                <a href="/tags/feedback.html" class="tag">feedback</a>
+                
+                <a href="/tags/json.html" class="tag">json</a>
+                
+                <a href="/tags/schema.html" class="tag">schema</a>
+                
+            </div>
+            
+        </header>
+        <div class="entry-content">
+            <h1>Structured Feedback Schemas</h1>
+<p>Request agents respond with structured JSON matching a predefined schema, enabling automated analysis and aggregation of feedback.</p>
+<h2>Quick Start</h2>
+<pre><code class="language-bash"># Use a built-in schema preset
+focusgroup ask &quot;Rate this tool&quot; -x &quot;mytool --help&quot; --schema rating
+
+# Output includes structured_data in JSON
+focusgroup ask &quot;Pros and cons?&quot; -x &quot;mytool --help&quot; --schema pros-cons -o json
+</code></pre>
+<h2>Built-in Schema Presets</h2>
+<h3><code>rating</code></h3>
+<p>Simple numeric rating with explanation.</p>
+<pre><code class="language-json">{
+  &quot;rating&quot;: 4,
+  &quot;reasoning&quot;: &quot;Clear help output, intuitive flags&quot;
+}
+</code></pre>
+<h3><code>pros-cons</code></h3>
+<p>List positive and negative aspects.</p>
+<pre><code class="language-json">{
+  &quot;pros&quot;: [&quot;Fast execution&quot;, &quot;Good error messages&quot;],
+  &quot;cons&quot;: [&quot;Missing documentation&quot;],
+  &quot;summary&quot;: &quot;Solid tool with room for improvement&quot;
+}
+</code></pre>
+<h3><code>review</code></h3>
+<p>Comprehensive review with rating, pros, cons, and suggestions.</p>
+<pre><code class="language-json">{
+  &quot;rating&quot;: 4,
+  &quot;pros&quot;: [&quot;Intuitive CLI&quot;, &quot;Good defaults&quot;],
+  &quot;cons&quot;: [&quot;Verbose output&quot;],
+  &quot;suggestions&quot;: [&quot;Add --quiet flag&quot;, &quot;Support JSON output&quot;]
+}
+</code></pre>
+<h2>How It Works</h2>
+<ol>
+<li><strong>Prompt Injection</strong>: Schema instructions are appended to your question</li>
+<li><strong>Agent Response</strong>: Agents are instructed to respond with valid JSON</li>
+<li><strong>Response Parsing</strong>: Focusgroup extracts JSON from the response</li>
+<li><strong>Output</strong>: Both raw response and structured data are available</li>
+</ol>
+<h2>JSON Output Format</h2>
+<p>When using <code>--schema</code> with <code>-o json</code>, responses include <code>structured_data</code>:</p>
+<pre><code class="language-json">{
+  &quot;rounds&quot;: [{
+    &quot;question&quot;: &quot;Rate this tool&quot;,
+    &quot;responses&quot;: [{
+      &quot;agent_name&quot;: &quot;Agent-1&quot;,
+      &quot;provider&quot;: &quot;claude-cli&quot;,
+      &quot;response&quot;: &quot;{\&quot;rating\&quot;: 4, \&quot;reasoning\&quot;: \&quot;Good tool\&quot;}&quot;,
+      &quot;structured_data&quot;: {
+        &quot;rating&quot;: 4,
+        &quot;reasoning&quot;: &quot;Good tool&quot;
+      }
+    }]
+  }]
+}
+</code></pre>
+<h2>Custom Schemas (TOML Config)</h2>
+<p>Define custom schemas in your config file:</p>
+<pre><code class="language-toml">[session]
+name = &quot;Custom Review&quot;
+
+[session.feedback_schema]
+include_raw_response = true
+
+[[session.feedback_schema.fields]]
+name = &quot;usability&quot;
+type = &quot;integer&quot;
+min_value = 1
+max_value = 10
+description = &quot;How easy is the tool to use?&quot;
+
+[[session.feedback_schema.fields]]
+name = &quot;would_recommend&quot;
+type = &quot;boolean&quot;
+description = &quot;Would you recommend this tool to other agents?&quot;
+
+[[session.feedback_schema.fields]]
+name = &quot;improvements&quot;
+type = &quot;list&quot;
+description = &quot;Suggested improvements&quot;
+required = false
+</code></pre>
+<h3>Field Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>JSON Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>integer</code></td>
+<td>number</td>
+<td>Numeric values (supports <code>min_value</code>, <code>max_value</code>)</td>
+</tr>
+<tr>
+<td><code>string</code></td>
+<td>string</td>
+<td>Free text</td>
+</tr>
+<tr>
+<td><code>list</code></td>
+<td>array</td>
+<td>Array of strings</td>
+</tr>
+<tr>
+<td><code>boolean</code></td>
+<td>boolean</td>
+<td>True/false</td>
+</tr>
+</tbody>
+</table>
+<h2>Response Parsing</h2>
+<p>Focusgroup handles various response formats:</p>
+<ol>
+<li><strong>Pure JSON</strong>: Response is just the JSON object</li>
+<li><strong>Code blocks</strong>: JSON in markdown <code>```json ... ```</code> blocks</li>
+<li><strong>Embedded</strong>: JSON object anywhere in the response text</li>
+</ol>
+<p>If JSON parsing fails, <code>structured_data</code> will be <code>null</code> and the raw response is preserved.</p>
+<h2>Use Cases</h2>
+<h3>Automated Analysis</h3>
+<pre><code class="language-bash"># Collect structured reviews from multiple agents
+focusgroup ask &quot;Review this CLI&quot; -x &quot;mytool --help&quot; --schema review -o json -n 5 | \
+  jq '[.rounds[0].responses[].structured_data.rating] | add / length'
+# Average rating across 5 agents
+</code></pre>
+<h3>Trend Tracking</h3>
+<p>Compare structured feedback across sessions:</p>
+<pre><code class="language-bash">focusgroup logs export --json | jq '.rounds[].responses[].structured_data'
+</code></pre>
+<h3>CI/CD Integration</h3>
+<pre><code class="language-bash"># Fail if average rating is below threshold
+rating=$(focusgroup ask &quot;Rate this tool&quot; -x &quot;mytool --help&quot; --schema rating -o json -q | \
+  jq '[.rounds[0].responses[].structured_data.rating // 0] | add / length')
+
+if (( $(echo &quot;$rating &lt; 3&quot; | bc -l) )); then
+  echo &quot;Tool rating too low: $rating&quot;
+  exit 1
+fi
+</code></pre>
+<h2>Best Practices</h2>
+<ol>
+<li><strong>Keep schemas simple</strong>: Fewer fields = more reliable parsing</li>
+<li><strong>Use descriptive field descriptions</strong>: Helps agents understand expectations</li>
+<li><strong>Make non-essential fields optional</strong>: Set <code>required = false</code></li>
+<li><strong>Use <code>--quiet</code> with scripts</strong>: Prevents status messages in output</li>
+<li><strong>Combine with <code>-o json</code></strong>: Structured data is most useful in JSON output</li>
+</ol>
+<h2>See Also</h2>
+<ul>
+<li><a href="json-formats.html" class="wikilink">JSON Output Formats</a> - Export format details</li>
+<li><a href="configuration.html" class="wikilink">Configuration Reference</a> - Full config options</li>
+</ul>
+
+        </div>
+    </article>
+</div>
+        </main>
+
+        <!-- Right panel -->
+        <aside class="panel">
+            
+        <div class="panel-section">
+            <div class="panel-header">Outgoing Links</div>
+            <ul class="link-list">
+                <li class="link-item">
+                    <a href="/configuration.html">
+                        <div class="link-title">Configuration Reference</div>
+                        <div class="link-path">configuration</div>
+                    </a>
+                </li>
+                <li class="link-item">
+                    <a href="/json-formats.html">
+                        <div class="link-title">JSON Output Formats</div>
+                        <div class="link-path">json-formats</div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="panel-section">
+            <div class="panel-header">Backlinks</div>
+            <ul class="link-list">
+                <li class="link-item">
+                    <a href="/json-formats.html">
+                        <div class="link-title">JSON Output Formats</div>
+                        <div class="link-path">json-formats</div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        </aside>
+    </div>
+
+    <script>window.BASE_URL = "";</script>
+    <script src="/assets/search.js"></script>
+    <script src="/assets/sidebar.js"></script>
+    <script>hljs.highlightAll(); mermaid.initialize({startOnLoad: true, theme: 'dark'});</script>
+</body>
+</html>
