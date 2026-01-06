@@ -26,7 +26,7 @@ from focusgroup.config import (
 )
 from focusgroup.modes.orchestrator import SessionOrchestrator
 from focusgroup.output import format_session, get_formatter
-from focusgroup.storage.session_log import get_default_storage
+from focusgroup.storage.session_log import SessionStorage, get_default_storage
 from focusgroup.tools.cli import create_cli_tool
 
 MAIN_EPILOG = """
@@ -899,18 +899,22 @@ def agents_list(
         for name, path in presets:
             try:
                 preset = load_agent_preset(path)
-                data.append({
-                    "name": name,
-                    "provider": preset.provider.value,
-                    "model": preset.model,
-                    "display_name": preset.display_name,
-                    "has_system_prompt": bool(preset.system_prompt),
-                })
+                data.append(
+                    {
+                        "name": name,
+                        "provider": preset.provider.value,
+                        "model": preset.model,
+                        "display_name": preset.display_name,
+                        "has_system_prompt": bool(preset.system_prompt),
+                    }
+                )
             except Exception as e:
-                data.append({
-                    "name": name,
-                    "error": str(e),
-                })
+                data.append(
+                    {
+                        "name": name,
+                        "error": str(e),
+                    }
+                )
         console.print(json.dumps(data, indent=2))
         return
 
@@ -1106,6 +1110,12 @@ LOGS_SHOW_EXAMPLES = """
   Show session details:
   [dim]$ focusgroup logs show 20260105-abc123[/dim]
 
+  Show the most recent session:
+  [dim]$ focusgroup logs show latest[/dim]
+
+  Show the 3rd most recent session:
+  [dim]$ focusgroup logs show latest-2[/dim]
+
   Show as JSON (for programmatic use):
   [dim]$ focusgroup logs show 20260105-abc123 --json[/dim]
 
@@ -1114,9 +1124,55 @@ LOGS_SHOW_EXAMPLES = """
 """
 
 
+def _resolve_session_id(session_id: str, storage: "SessionStorage") -> str:
+    """Resolve special session ID shortcuts like 'latest' or 'latest-N'.
+
+    Args:
+        session_id: The session ID or shortcut to resolve
+        storage: Session storage instance
+
+    Returns:
+        Resolved session display_id
+
+    Raises:
+        typer.Exit: If session cannot be found
+    """
+    # Check for 'latest' or 'latest-N' pattern
+    if session_id == "latest":
+        offset = 0
+    elif session_id.startswith("latest-"):
+        try:
+            offset = int(session_id[7:])  # Parse the number after 'latest-'
+        except ValueError:
+            console.print(f"[red]Invalid latest offset: {session_id}[/red]")
+            console.print("[dim]Use 'latest' or 'latest-N' where N is a number (0-indexed)[/dim]")
+            raise typer.Exit(1) from None
+    else:
+        # Not a special shortcut, return as-is
+        return session_id
+
+    # Fetch enough sessions to satisfy the offset
+    sessions = storage.list_sessions(limit=offset + 1)
+
+    if not sessions:
+        console.print("[red]No sessions found[/red]")
+        raise typer.Exit(1)
+
+    if offset >= len(sessions):
+        console.print(
+            f"[red]Only {len(sessions)} session(s) available, cannot access latest-{offset}[/red]"
+        )
+        raise typer.Exit(1)
+
+    return sessions[offset].display_id
+
+
 @logs_app.command("show", epilog=LOGS_SHOW_EXAMPLES)
 def logs_show(
-    session_id: Annotated[str, typer.Argument(help="Session ID to show")],
+    session_id: Annotated[
+        str,
+        typer.Argument(help="Session ID, 'latest', or 'latest-N' for Nth most recent"),
+    ],
     format: Annotated[
         str,
         typer.Option("--format", "-f", help="Output format: json, markdown, or text"),
@@ -1126,13 +1182,20 @@ def logs_show(
         typer.Option("--json", help="Output as JSON (shortcut for --format json)"),
     ] = False,
 ) -> None:
-    """Show details of a past session."""
+    """Show details of a past session.
+
+    Use 'latest' to show the most recent session, or 'latest-N' where N is
+    a 0-indexed offset (e.g., 'latest-2' shows the 3rd most recent).
+    """
     storage = get_default_storage()
 
+    # Resolve special shortcuts like 'latest'
+    resolved_id = _resolve_session_id(session_id, storage)
+
     try:
-        session = storage.load(session_id)
+        session = storage.load(resolved_id)
     except FileNotFoundError:
-        console.print(f"[red]Session not found: {session_id}[/red]")
+        console.print(f"[red]Session not found: {resolved_id}[/red]")
         raise typer.Exit(1) from None
     except ValueError as e:
         console.print(f"[red]{e}[/red]")
@@ -1150,6 +1213,9 @@ LOGS_EXPORT_EXAMPLES = """
   Export to markdown (default):
   [dim]$ focusgroup logs export 20260105-abc123[/dim]
 
+  Export the most recent session:
+  [dim]$ focusgroup logs export latest[/dim]
+
   Export to JSON:
   [dim]$ focusgroup logs export 20260105-abc123 --format json[/dim]
 
@@ -1160,7 +1226,10 @@ LOGS_EXPORT_EXAMPLES = """
 
 @logs_app.command("export", epilog=LOGS_EXPORT_EXAMPLES)
 def logs_export(
-    session_id: Annotated[str, typer.Argument(help="Session ID to export")],
+    session_id: Annotated[
+        str,
+        typer.Argument(help="Session ID, 'latest', or 'latest-N' for Nth most recent"),
+    ],
     output: Annotated[
         Path | None,
         typer.Option("--output", "-o", help="Output file path"),
@@ -1170,13 +1239,19 @@ def logs_export(
         typer.Option("--format", "-f", help="Output format: json or markdown"),
     ] = "markdown",
 ) -> None:
-    """Export a session to a file."""
+    """Export a session to a file.
+
+    Use 'latest' to export the most recent session.
+    """
     storage = get_default_storage()
 
+    # Resolve special shortcuts like 'latest'
+    resolved_id = _resolve_session_id(session_id, storage)
+
     try:
-        session = storage.load(session_id)
+        session = storage.load(resolved_id)
     except FileNotFoundError:
-        console.print(f"[red]Session not found: {session_id}[/red]")
+        console.print(f"[red]Session not found: {resolved_id}[/red]")
         raise typer.Exit(1) from None
     except ValueError as e:
         console.print(f"[red]{e}[/red]")
@@ -1204,6 +1279,9 @@ LOGS_DELETE_EXAMPLES = """
   Delete with confirmation:
   [dim]$ focusgroup logs delete 20260105-abc123[/dim]
 
+  Delete the most recent session:
+  [dim]$ focusgroup logs delete latest[/dim]
+
   Delete without confirmation:
   [dim]$ focusgroup logs delete 20260105-abc123 --force[/dim]
 """
@@ -1211,20 +1289,29 @@ LOGS_DELETE_EXAMPLES = """
 
 @logs_app.command("delete", epilog=LOGS_DELETE_EXAMPLES)
 def logs_delete(
-    session_id: Annotated[str, typer.Argument(help="Session ID to delete")],
+    session_id: Annotated[
+        str,
+        typer.Argument(help="Session ID, 'latest', or 'latest-N' for Nth most recent"),
+    ],
     force: Annotated[
         bool,
         typer.Option("--force", "-f", help="Delete without confirmation"),
     ] = False,
 ) -> None:
-    """Delete a session log."""
+    """Delete a session log.
+
+    Use 'latest' to delete the most recent session.
+    """
     storage = get_default_storage()
+
+    # Resolve special shortcuts like 'latest'
+    resolved_id = _resolve_session_id(session_id, storage)
 
     # Verify session exists first
     try:
-        session = storage.load(session_id)
+        session = storage.load(resolved_id)
     except FileNotFoundError:
-        console.print(f"[red]Session not found: {session_id}[/red]")
+        console.print(f"[red]Session not found: {resolved_id}[/red]")
         raise typer.Exit(1) from None
 
     if not force:

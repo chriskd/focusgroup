@@ -815,9 +815,7 @@ class TestDoctorCommand:
 
     @patch("focusgroup.cli.subprocess.run")
     @patch("focusgroup.cli.get_default_storage")
-    def test_doctor_verbose_mode(
-        self, mock_storage_fn, mock_run, tmp_path: Path, monkeypatch
-    ):
+    def test_doctor_verbose_mode(self, mock_storage_fn, mock_run, tmp_path: Path, monkeypatch):
         """Doctor verbose mode shows additional info."""
         config_dir = tmp_path / "config"
         agents_dir = config_dir / "agents"
@@ -883,9 +881,7 @@ class TestDoctorCommand:
         # First call succeeds (claude), second fails (codex)
         def run_side_effect(cmd, **kwargs):
             if cmd[0] == "claude":
-                return CompletedProcess(
-                    args=cmd, returncode=0, stdout="claude 1.0.0", stderr=""
-                )
+                return CompletedProcess(args=cmd, returncode=0, stdout="claude 1.0.0", stderr="")
             else:
                 raise FileNotFoundError("codex not found")
 

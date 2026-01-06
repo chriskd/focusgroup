@@ -9,6 +9,9 @@ from .base import BaseAgent
 from .claude import ClaudeCLIAgent, create_claude_agent
 from .codex import CodexCLIAgent, create_codex_agent
 
+# Type alias for factory functions that accept config and optional env
+AgentFactory = Callable[[AgentConfig, dict[str, str] | None], BaseAgent]
+
 
 @dataclass
 class ProviderInfo:
@@ -26,7 +29,7 @@ class ProviderInfo:
     name: str
     description: str
     cli_command: str
-    factory: Callable[[AgentConfig], BaseAgent]
+    factory: AgentFactory
 
 
 # Registry of all available providers (CLI-only)
@@ -48,7 +51,10 @@ _PROVIDERS: dict[AgentProvider, ProviderInfo] = {
 }
 
 
-def create_agent(config: AgentConfig) -> BaseAgent:
+def create_agent(
+    config: AgentConfig,
+    env: dict[str, str] | None = None,
+) -> BaseAgent:
     """Create an agent instance from configuration.
 
     This is the main factory function for creating agents.
@@ -57,6 +63,8 @@ def create_agent(config: AgentConfig) -> BaseAgent:
 
     Args:
         config: Agent configuration specifying provider, etc.
+        env: Optional environment variables to pass to agent subprocess.
+             Use this to ensure target tools are in PATH.
 
     Returns:
         Configured BaseAgent instance
@@ -69,14 +77,18 @@ def create_agent(config: AgentConfig) -> BaseAgent:
     if not provider_info:
         raise ValueError(f"Unknown agent provider: {config.provider}")
 
-    return provider_info.factory(config)
+    return provider_info.factory(config, env)
 
 
-def create_agents(configs: list[AgentConfig]) -> list[BaseAgent]:
+def create_agents(
+    configs: list[AgentConfig],
+    env: dict[str, str] | None = None,
+) -> list[BaseAgent]:
     """Create multiple agent instances from configurations.
 
     Args:
         configs: List of agent configurations
+        env: Optional environment variables to pass to agent subprocesses.
 
     Returns:
         List of configured BaseAgent instances
@@ -85,7 +97,7 @@ def create_agents(configs: list[AgentConfig]) -> list[BaseAgent]:
         ValueError: If any provider is not supported
         AgentUnavailableError: If any agent cannot be initialized
     """
-    return [create_agent(config) for config in configs]
+    return [create_agent(config, env) for config in configs]
 
 
 def list_providers() -> list[ProviderInfo]:

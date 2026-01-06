@@ -31,14 +31,16 @@ class CodexCLIAgent(BaseAgent):
         self,
         config: AgentConfig,
         timeout: int = DEFAULT_CODEX_CLI_TIMEOUT,
+        env: dict[str, str] | None = None,
     ) -> None:
         """Initialize the Codex CLI agent.
 
         Args:
             config: Agent configuration
             timeout: Command timeout in seconds
+            env: Optional environment variables for subprocess
         """
-        super().__init__(config)
+        super().__init__(config, env=env)
         self._timeout = timeout
 
     async def respond(self, prompt: str, context: str | None = None) -> AgentResponse:
@@ -71,6 +73,7 @@ class CodexCLIAgent(BaseAgent):
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env=self._env,
             )
 
             stdout, stderr = await asyncio.wait_for(
@@ -141,6 +144,7 @@ class CodexCLIAgent(BaseAgent):
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env=self._env,
             )
 
             # Read stdout in chunks
@@ -182,11 +186,15 @@ class CodexCLIAgent(BaseAgent):
             ) from None
 
 
-def create_codex_agent(config: AgentConfig) -> BaseAgent:
+def create_codex_agent(
+    config: AgentConfig,
+    env: dict[str, str] | None = None,
+) -> BaseAgent:
     """Factory function to create a Codex agent.
 
     Args:
         config: Agent configuration
+        env: Optional environment variables for subprocess
 
     Returns:
         CodexCLIAgent instance
@@ -202,4 +210,4 @@ def create_codex_agent(config: AgentConfig) -> BaseAgent:
     else:
         timeout = DEFAULT_CODEX_CLI_TIMEOUT
 
-    return CodexCLIAgent(config, timeout=timeout)
+    return CodexCLIAgent(config, timeout=timeout, env=env)

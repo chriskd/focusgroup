@@ -102,14 +102,21 @@ class BaseAgent(ABC):
     to implement the core respond/stream methods.
     """
 
-    def __init__(self, config: AgentConfig) -> None:
+    def __init__(
+        self,
+        config: AgentConfig,
+        env: dict[str, str] | None = None,
+    ) -> None:
         """Initialize the agent with configuration.
 
         Args:
             config: Agent configuration from session config
+            env: Optional environment variables to use when spawning processes.
+                 If None, inherits the current process environment.
         """
         self._config = config
         self._name = config.display_name
+        self._env = env
 
     @property
     def name(self) -> str:

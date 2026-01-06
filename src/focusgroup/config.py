@@ -50,6 +50,12 @@ class ToolConfig(BaseModel):
     command: str  # CLI command or path to docs
     help_args: list[str] = Field(default_factory=lambda: ["--help"])
     working_dir: str | None = None
+    path_additions: list[str] = Field(default_factory=list)
+    """Additional directories to add to PATH when agents run the tool.
+
+    If the tool command is an absolute path (e.g., /srv/code/tool/.venv/bin/mytool),
+    its directory is automatically added. Use this field for additional paths needed.
+    """
 
     @field_validator("command")
     @classmethod

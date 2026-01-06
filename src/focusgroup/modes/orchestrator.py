@@ -1,13 +1,15 @@
 """Session orchestrator - coordinates agents, tools, and modes."""
 
+import os
 from collections.abc import AsyncIterator
 from datetime import datetime
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from focusgroup.agents.base import AgentResponse as AgentModuleResponse
 from focusgroup.agents.base import BaseAgent
 from focusgroup.agents.registry import create_agents
-from focusgroup.config import FocusgroupConfig, SessionMode
+from focusgroup.config import FocusgroupConfig, SessionMode, ToolConfig
 from focusgroup.storage.session_log import (
     AgentResponse as StorageAgentResponse,
 )
@@ -21,6 +23,47 @@ from focusgroup.tools.base import Tool, ToolHelp
 
 from .base import ConversationHistory, RoundResult, SessionModeError
 from .single import SingleMode
+
+
+def build_agent_env(tool_config: ToolConfig) -> dict[str, str]:
+    """Build environment variables for agent subprocesses.
+
+    Creates an environment dict that includes the current environment
+    plus any additional PATH entries needed for the target tool.
+
+    Args:
+        tool_config: Tool configuration with path_additions
+
+    Returns:
+        Environment dict with augmented PATH
+    """
+    # Start with current environment
+    env = os.environ.copy()
+
+    # Collect additional paths
+    additional_paths: list[str] = []
+
+    # Auto-detect: if tool command is an absolute path, add its directory
+    command = tool_config.command
+    if os.path.isabs(command):
+        tool_dir = str(Path(command).parent)
+        if tool_dir not in additional_paths:
+            additional_paths.append(tool_dir)
+
+    # Add explicit path_additions
+    for path in tool_config.path_additions:
+        expanded = os.path.expanduser(path)
+        if expanded not in additional_paths:
+            additional_paths.append(expanded)
+
+    # Prepend to PATH if we have additions
+    if additional_paths:
+        current_path = env.get("PATH", "")
+        new_path_entries = os.pathsep.join(additional_paths)
+        env["PATH"] = f"{new_path_entries}{os.pathsep}{current_path}"
+
+    return env
+
 
 if TYPE_CHECKING:
     from .base import SessionMode as SessionModeProtocol
@@ -105,8 +148,11 @@ class SessionOrchestrator:
                 if agent_config.timeout is None:
                     agent_config.timeout = self._config.session.agent_timeout
 
-        # Create agents from config
-        self._agents = create_agents(self._config.agents)
+        # Build environment for agents (includes tool PATH additions)
+        agent_env = build_agent_env(self._config.tool)
+
+        # Create agents from config with augmented environment
+        self._agents = create_agents(self._config.agents, env=agent_env)
         self._session.agent_count = len(self._agents)
 
         # Only fetch tool help if no explicit context was provided

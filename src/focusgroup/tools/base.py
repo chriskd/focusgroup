@@ -129,7 +129,7 @@ class ToolHelp:
 
 ## Interactive Exploration
 
-**IMPORTANT**: You can and should run `{self.tool_name}` commands to explore this tool before giving feedback!
+**IMPORTANT**: You can and should run `{self.tool_name}` commands to explore this tool!
 
 ### How to Explore
 1. Try running `{self.tool_name} --help` to see the full help
