@@ -72,7 +72,22 @@ app = typer.Typer(
     epilog=MAIN_EPILOG,
 )
 
-agents_app = typer.Typer(help="Manage agent presets.")
+AGENTS_HELP = """Manage agent presets.
+
+Presets are TOML files that configure agents for focusgroup sessions.
+Each preset defines a provider, optional model, and system prompt.
+
+[bold]Preset Locations:[/bold]
+  Built-in:  shipped with focusgroup (claude-default, ux-reviewer, etc.)
+  User:      ~/.config/focusgroup/agents/*.toml (override built-in)
+
+[bold]Quick Start:[/bold]
+  focusgroup agents init my-reviewer     # Create template
+  focusgroup agents show my-reviewer     # View configuration
+  focusgroup agents list                 # See all presets
+"""
+
+agents_app = typer.Typer(help=AGENTS_HELP, rich_markup_mode="rich")
 logs_app = typer.Typer(help="View and manage session logs.")
 
 app.add_typer(agents_app, name="agents")
@@ -505,7 +520,78 @@ ASK_EXAMPLES = """
 
   Combine multiple options:
   [dim]$ focusgroup ask "Full review" -x "mx --help" -e -s claude -n 5[/dim]
+
+  Preview exploration prompt (dry run):
+  [dim]$ focusgroup ask "Try workflows" -x "mx --help" --explore --dry-run[/dim]
 """
+
+
+def _show_dry_run(tool: str, question: str, context: str, explore: bool) -> None:
+    """Show what would be sent to agents without running them.
+
+    Args:
+        tool: Tool name
+        question: The question being asked
+        context: Resolved context (command output or file content)
+        explore: Whether exploration mode is enabled
+    """
+    from focusgroup.tools.base import ToolHelp
+
+    console.print("\n[bold cyan]═══ DRY RUN ═══[/bold cyan]")
+    console.print("[dim]Showing what would be sent to agents (no API calls made)[/dim]\n")
+
+    # Build the context that agents would see
+    console.print("[bold]Tool:[/bold]", tool)
+    console.print("[bold]Question:[/bold]", question)
+    console.print("[bold]Exploration:[/bold]", "enabled" if explore else "disabled")
+
+    console.print("\n[bold]─── Context Provided to Agents ───[/bold]\n")
+
+    # Show context (truncated if very long)
+    if len(context) > 2000:
+        console.print(context[:1500])
+        console.print(f"\n[dim]... ({len(context) - 1500} more characters truncated) ...[/dim]\n")
+        console.print(context[-500:])
+    else:
+        console.print(context)
+
+    # If explore mode, show the exploration instructions
+    if explore:
+        console.print("\n[bold]─── Exploration Instructions (appended to context) ───[/bold]\n")
+        # Create a minimal ToolHelp just to get the exploration instructions
+        tool_help = ToolHelp(
+            tool_name=tool,
+            description="",
+            usage="",
+            raw_output="",
+        )
+        exploration_text = tool_help._exploration_instructions()
+        console.print(f"[dim]{exploration_text}[/dim]")
+
+        console.print("\n[bold]─── How Exploration Works ───[/bold]")
+        console.print("""
+[dim]When --explore is enabled:[/dim]
+
+1. [cyan]Shell Access[/cyan]: Agents invoke the provider CLI (claude/codex) which has
+   shell command execution capabilities. Agents can run any command.
+
+2. [cyan]Permission Model[/cyan]: Focusgroup does NOT add sandboxing. Security relies
+   entirely on the provider CLI's permission model:
+   - claude CLI: Prompts for dangerous operations
+   - codex CLI: Has its own safety checks
+
+3. [cyan]Working Directory[/cyan]: Agents run in YOUR current directory (inherited from
+   the focusgroup process). They can read/write files here.
+
+4. [cyan]Timeout[/cyan]: Default 300s (vs 120s normal). Customize with --timeout.
+
+5. [cyan]What Agents Do[/cyan]: They receive the exploration instructions above,
+   encouraging them to actually run the tool, try workflows, and explore edge cases.
+
+[yellow]⚠ Caution[/yellow]: Only use --explore with tools you trust agents to invoke freely.
+""")
+    else:
+        console.print("\n[dim]Tip: Add --explore to let agents run the tool interactively[/dim]")
 
 
 @app.command(epilog=ASK_EXAMPLES)
@@ -564,6 +650,14 @@ def ask(
         list[str] | None,
         typer.Option("--tag", help="Tag for organizing sessions (can be repeated)"),
     ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Show what would be sent to agents without running them. "
+            "Useful for previewing --explore prompts.",
+        ),
+    ] = False,
 ) -> None:
     """Quick ad-hoc query to an agent panel about a tool.
 
@@ -579,6 +673,11 @@ def ask(
 
     # Infer tool name from context if not provided
     effective_tool = tool if tool else infer_tool_from_context(context)
+
+    # Handle dry-run: show what would be sent to agents
+    if dry_run:
+        _show_dry_run(effective_tool, question, resolved_context, explore)
+        return
 
     asyncio.run(
         _ask_impl(
@@ -1050,6 +1149,101 @@ def agents_list(
                 table.add_row(name, "[red]error[/red]", "")
 
         console.print(table)
+
+
+AGENTS_INIT_EXAMPLES = """
+[bold]Examples:[/bold]
+
+  Create a new preset template:
+  [dim]$ focusgroup agents init my-reviewer[/dim]
+
+  Edit after creation:
+  [dim]$ vim ~/.config/focusgroup/agents/my-reviewer.toml[/dim]
+"""
+
+
+AGENT_PRESET_TEMPLATE = '''# Agent preset: {name}
+# Created by: focusgroup agents init
+#
+# This preset defines an agent configuration for focusgroup sessions.
+# User presets override built-in ones with the same name.
+
+[agent]
+# Required: Provider CLI to use
+# Options: "claude", "codex", or custom provider from providers.toml
+provider = "claude"
+
+# Optional: Display name shown in output (defaults to provider name)
+name = "{display_name}"
+
+# Optional: Specific model to use (provider default if not set)
+# model = "opus"
+
+# Optional: System prompt that shapes how the agent approaches feedback
+# Uncomment and customize:
+system_prompt = """You are reviewing a CLI tool designed for use by AI agents.
+
+Focus your feedback on:
+- Clarity of help output and error messages
+- Ease of integration and automation
+- Consistency of command patterns
+- Discoverability of features
+
+Provide specific, actionable suggestions."""
+
+# Optional: Enable exploration mode (agents can run the tool)
+# exploration = true
+
+# Optional: Custom timeout in seconds (default: 120, exploration: 300)
+# timeout = 180
+'''
+
+
+@agents_app.command("init", epilog=AGENTS_INIT_EXAMPLES)
+def agents_init(
+    name: Annotated[str, typer.Argument(help="Name for the new preset (alphanumeric and hyphens)")],
+    force: Annotated[
+        bool,
+        typer.Option("--force", "-f", help="Overwrite existing preset"),
+    ] = False,
+) -> None:
+    """Create a new agent preset template.
+
+    Creates a TOML file in ~/.config/focusgroup/agents/ with documented
+    fields for customization. Edit the file to configure your agent.
+
+    Preset fields:
+      provider      - Required. "claude", "codex", or custom provider
+      name          - Display name in output
+      model         - Specific model to use
+      system_prompt - Shapes agent behavior/focus
+      exploration   - Enable interactive tool testing
+      timeout       - Custom timeout in seconds
+    """
+    import re
+
+    # Validate name
+    if not re.match(r"^[a-zA-Z][a-zA-Z0-9-]*$", name):
+        console.print("[red]Invalid name. Use alphanumeric/hyphens, starting with a letter.[/red]")
+        raise typer.Exit(1)
+
+    agents_dir = get_agents_dir()
+    preset_path = agents_dir / f"{name}.toml"
+
+    if preset_path.exists() and not force:
+        console.print(f"[red]Preset already exists: {preset_path}[/red]")
+        console.print("[dim]Use --force to overwrite[/dim]")
+        raise typer.Exit(1)
+
+    # Generate display name from preset name
+    display_name = name.replace("-", " ").title()
+
+    content = AGENT_PRESET_TEMPLATE.format(name=name, display_name=display_name)
+    preset_path.write_text(content)
+
+    console.print(f"[green]✓[/green] Created preset: {preset_path}")
+    console.print("\n[dim]Edit to customize, then use in sessions:[/dim]")
+    console.print(f"  focusgroup ask 'question' -x 'tool --help' --agents {name}")
 
 
 AGENTS_SHOW_EXAMPLES = """
