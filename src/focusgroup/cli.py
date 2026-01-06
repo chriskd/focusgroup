@@ -45,16 +45,17 @@ MAIN_EPILOG = """
 
 [bold]Exploration Mode (--explore):[/bold]
 
-  When enabled, agents can execute the tool directly to explore its behavior.
+  [yellow]⚠ SECURITY WARNING[/yellow]: Agents run with relaxed sandbox protections.
+  See docs/exploration.md for full security details.
 
   What agents can do:
   - Run the target tool with any arguments
-  - Execute shell commands via the provider CLI
-  - Read files and inspect output
+  - Execute arbitrary shell commands
+  - Read/write files and access network
 
   Working directory: Inherits from focusgroup process
   Timeout: 300s (vs 120s default), configurable via --timeout
-  Safety: Uses provider CLI's permission model (claude/codex)
+  Recommendation: Use in containers/VMs for untrusted tools
 
   Best for: Interactive testing, workflow validation, edge case discovery
 
@@ -635,6 +636,7 @@ def ask(
             "--explore",
             "-e",
             help="Enable exploration mode: agents can run the tool interactively. "
+            "WARNING: Bypasses sandbox protections. See docs/exploration.md for security details. "
             "Timeout increases to 300s. Agents execute in current working directory.",
         ),
     ] = False,

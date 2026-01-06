@@ -129,25 +129,98 @@ I tested the tool with various inputs:
 - Show available tags in search results
 ```
 
-## Safety Considerations
+## Security Considerations
 
-Exploration mode allows agents to run commands. Consider:
+> **WARNING**: Exploration mode grants agents significant system access. Read this section carefully before enabling exploration.
 
-1. **Tool Safety**: Only evaluate tools that are safe to run
-2. **Permissions**: Agents run with the tool's normal permissions
-3. **State Changes**: Some tools may modify state (files, databases)
+### What Permissions Are Granted
 
-### Sandboxing
+CLI-mode agents run with **relaxed permission controls** to enable tool exploration:
 
-CLI-mode agents (Claude, Codex) run in their normal sandboxed environments:
+| Provider | Mode | Permission Flags | What This Means |
+|----------|------|------------------|-----------------|
+| Claude | CLI | `--dangerously-skip-permissions` | Bypasses all permission prompts; agent can run any command without approval |
+| Codex | CLI (explore) | `--sandbox danger-full-access` | Removes sandbox restrictions; full filesystem and network access |
+| Codex | CLI (no explore) | `--full-auto` | Standard Codex safety checks apply |
+| Claude/OpenAI | API | N/A | No shell access; limited to API-only interactions |
 
-- **Claude CLI**: Uses Claude Code's sandbox
-- **Codex CLI**: Uses Codex's sandbox
+### What Agents Can Access
 
-For additional safety, consider:
-- Using a test environment
-- Evaluating read-only tools first
-- Reviewing what the tool can do before enabling exploration
+With exploration mode enabled, CLI agents can:
+
+- **Filesystem**: Read, write, and delete any files accessible to your user account
+- **Network**: Make HTTP requests, download files, connect to services
+- **Shell Commands**: Run arbitrary shell commands (git, curl, rm, etc.)
+- **Environment**: Access environment variables, including secrets in your shell
+- **Other Tools**: Invoke any CLI tools installed on your system
+
+### Why These Permissions?
+
+Exploration mode exists to let agents **actually use** tools and give authentic feedback. An agent exploring a CLI tool needs to run that tool—which requires shell access. Sandbox restrictions would prevent agents from testing the very tool you want feedback on.
+
+This is a deliberate trade-off: **useful exploration feedback requires real tool access**.
+
+### Recommendations
+
+#### 1. Run in Isolated Environments
+
+The safest approach is to run focusgroup exploration in an isolated environment:
+
+```bash
+# Use a container
+docker run -it --rm -v $(pwd):/workspace myimage focusgroup ask mytool "..." --explore
+
+# Use a VM
+# Run focusgroup inside a disposable VM or devcontainer
+
+# Use a separate user account
+# Create a low-privilege account specifically for exploration
+```
+
+#### 2. Review Tools Before Exploration
+
+Before enabling exploration for a tool:
+
+- Understand what the tool can do (especially write operations)
+- Check if the tool accesses sensitive data or services
+- Consider using read-only tools first to test the setup
+
+#### 3. Limit What's in the Environment
+
+```bash
+# Run with a clean environment to limit exposed secrets
+env -i PATH="$PATH" HOME="$HOME" focusgroup ask mytool "..." --explore
+
+# Or explicitly set only needed variables
+export MYTOOL_API_KEY=xxx  # Only what's needed
+focusgroup ask mytool "..." --explore
+```
+
+#### 4. Use API Mode for Untrusted Scenarios
+
+If you can't isolate the environment, use API-mode agents instead:
+
+```toml
+[[agents]]
+provider = "claude"
+mode = "api"  # No shell access, safer but can't explore
+```
+
+API agents can still review documentation and help text, but cannot run commands.
+
+### Risk Summary
+
+| Scenario | Risk Level | Recommendation |
+|----------|------------|----------------|
+| Exploring your own read-only tool in a dev container | Low | Safe to proceed |
+| Exploring any tool in a VM/container | Low | Safe to proceed |
+| Exploring read-only tools on your main system | Medium | Acceptable with caution |
+| Exploring write-capable tools on your main system | High | Use isolated environment |
+| Running exploration with sensitive secrets in env | High | Clean environment or container |
+
+### Future: Sandbox Level Control
+
+A `--sandbox-level` flag for granular control is planned but not yet implemented. For now, exploration mode is all-or-nothing with respect to permissions.
 
 ## Best Practices
 
