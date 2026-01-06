@@ -84,15 +84,15 @@
     },
     {
       "source": "configuration",
+      "target": "providers"
+    },
+    {
+      "source": "configuration",
       "target": "modes"
     },
     {
       "source": "configuration",
       "target": "exploration"
-    },
-    {
-      "source": "configuration",
-      "target": "providers"
     },
     {
       "source": "providers",
@@ -104,11 +104,11 @@
     },
     {
       "source": "json-formats",
-      "target": "modes"
+      "target": "structured-feedback"
     },
     {
       "source": "json-formats",
-      "target": "structured-feedback"
+      "target": "modes"
     },
     {
       "source": "json-formats",
