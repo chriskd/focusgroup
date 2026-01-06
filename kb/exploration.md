@@ -1,3 +1,9 @@
+---
+title: Exploration Mode
+tags: [focusgroup, exploration, security]
+created: 2026-01-06
+---
+
 # Exploration Mode
 
 Exploration mode lets agents actually run the tool being evaluated, rather than just reading its help output. This provides more authentic feedback based on real interaction.
@@ -57,14 +63,14 @@ this tool before giving feedback!
 
 ## Requirements
 
-Exploration works best with CLI-mode agents:
+Exploration works best with CLI-mode agents (see [[providers]] for setup):
 
 | Provider | Mode | Exploration Support |
 |----------|------|---------------------|
-| Claude | CLI | ✅ Full support |
-| Codex | CLI | ✅ Full support |
-| Claude | API | ⚠️ Limited (no shell access) |
-| OpenAI | API | ⚠️ Limited (no shell access) |
+| Claude | CLI | Full support |
+| Codex | CLI | Full support |
+| Claude | API | Limited (no shell access) |
+| OpenAI | API | Limited (no shell access) |
 
 **Recommendation:** Use CLI-mode agents for exploration.
 

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Providers Guide - Memex</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/lunr@2.3.9/lunr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <a href="/" class="logo">
+                <div class="logo-mark"></div>
+                <div class="logo-text">Memex<span> / knowledge</span></div>
+            </a>
+
+            <div class="search-container">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" id="search-input" placeholder="Search knowledge base..." autocomplete="off">
+                <div id="search-results"></div>
+            </div>
+
+            <div class="header-nav">
+                <a href="/" class="nav-link active">Reader</a>
+                <a href="/graph.html" class="nav-link">Graph</a>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">Categories</div>
+            <div class="tree">
+            <a href="/configuration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">configuration</span>
+            </a>
+            <a href="/exploration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">exploration</span>
+            </a>
+            <a href="/modes.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">modes</span>
+            </a>
+            <a href="/providers.html" class="tree-item active">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">providers</span>
+            </a></div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main">
+            
+<div class="reader-container">
+    <article class="entry">
+        <header class="entry-header">
+            <div class="entry-path">providers</div>
+            <h1 class="entry-title">Agent Providers Guide</h1>
+            <div class="entry-meta">
+                
+                <div class="entry-meta-item">Created: <span>2026-01-06 00:00:00</span></div>
+                
+            </div>
+            
+            <div class="entry-tags">
+                
+                <a href="/tags/focusgroup.html" class="tag">focusgroup</a>
+                
+                <a href="/tags/providers.html" class="tag">providers</a>
+                
+                <a href="/tags/agents.html" class="tag">agents</a>
+                
+            </div>
+            
+        </header>
+        <div class="entry-content">
+            <h1>Agent Providers Guide</h1>
+<p>Focusgroup supports multiple LLM providers, each with API and/or CLI modes. This guide covers setup and best practices for each.</p>
+<h2>Overview</h2>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>API Mode</th>
+<th>CLI Mode</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude (Anthropic)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>General feedback, nuanced analysis</td>
+</tr>
+<tr>
+<td>OpenAI</td>
+<td>Yes</td>
+<td>No</td>
+<td>Alternative perspective, GPT-4o capabilities</td>
+</tr>
+<tr>
+<td>Codex (OpenAI)</td>
+<td>No</td>
+<td>Yes</td>
+<td>Code-focused feedback, authentic CLI behavior</td>
+</tr>
+</tbody>
+</table>
+<h2>Claude (Anthropic)</h2>
+<h3>API Mode</h3>
+<p>Direct API calls to Anthropic's Claude models.</p>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash">export ANTHROPIC_API_KEY=&quot;sk-ant-...&quot;
+</code></pre>
+<p><strong>Config:</strong></p>
+<pre><code class="language-toml">[[agents]]
+provider = &quot;claude&quot;
+mode = &quot;api&quot;
+model = &quot;claude-sonnet-4-20250514&quot;  # or claude-opus-4-20250514
+name = &quot;Claude-Sonnet&quot;
+</code></pre>
+<p><strong>Available Models:</strong></p>
+<ul>
+<li><code>claude-sonnet-4-20250514</code> (default) - Fast, capable, cost-effective</li>
+<li><code>claude-opus-4-20250514</code> - Most capable, higher cost</li>
+</ul>
+<h3>CLI Mode</h3>
+<p>Invokes the actual <code>claude</code> CLI tool, providing authentic agent behavior.</p>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash"># Install Claude Code CLI
+# See: https://docs.anthropic.com/claude-code
+
+# Authenticate
+claude auth login
+</code></pre>
+<p><strong>Config:</strong></p>
+<pre><code class="language-toml">[[agents]]
+provider = &quot;claude&quot;
+mode = &quot;cli&quot;
+name = &quot;Claude-CLI&quot;
+</code></pre>
+<p><strong>When to use CLI mode:</strong></p>
+<ul>
+<li>Testing how agents actually interact with tools</li>
+<li>Getting feedback that reflects real-world agent usage</li>
+<li>When you want the agent to use its full toolset (file reading, web access, etc.)</li>
+</ul>
+<h2>OpenAI</h2>
+<h3>API Mode</h3>
+<p>Direct API calls to OpenAI's GPT models.</p>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash">export OPENAI_API_KEY=&quot;sk-...&quot;
+</code></pre>
+<p><strong>Config:</strong></p>
+<pre><code class="language-toml">[[agents]]
+provider = &quot;openai&quot;
+mode = &quot;api&quot;
+model = &quot;gpt-4o&quot;
+name = &quot;GPT-4o&quot;
+</code></pre>
+<p><strong>Available Models:</strong></p>
+<ul>
+<li><code>gpt-4o</code> (default) - Latest multimodal model</li>
+<li><code>gpt-4o-mini</code> - Faster, lower cost</li>
+<li><code>gpt-4-turbo</code> - Previous generation</li>
+</ul>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>OpenAI does not have CLI mode in focusgroup</li>
+<li>System prompts are fully supported</li>
+</ul>
+<h2>Codex</h2>
+<h3>CLI Mode</h3>
+<p>Invokes the OpenAI Codex CLI for code-focused feedback.</p>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash"># Install Codex CLI
+# See OpenAI's codex documentation
+
+# Authenticate
+codex auth
+</code></pre>
+<p><strong>Config:</strong></p>
+<pre><code class="language-toml">[[agents]]
+provider = &quot;codex&quot;
+mode = &quot;cli&quot;
+name = &quot;Codex&quot;
+</code></pre>
+<p><strong>When to use Codex:</strong></p>
+<ul>
+<li>Getting code-focused feedback</li>
+<li>Testing CLI tools that agents interact with programmatically</li>
+<li>When you want an OpenAI-based CLI agent perspective</li>
+</ul>
+<h2>Mixing Providers</h2>
+<p>A key strength of focusgroup is combining multiple providers for diverse perspectives:</p>
+<pre><code class="language-toml">[[agents]]
+provider = &quot;claude&quot;
+mode = &quot;api&quot;
+name = &quot;Claude-API&quot;
+system_prompt = &quot;Focus on UX and ergonomics.&quot;
+
+[[agents]]
+provider = &quot;openai&quot;
+mode = &quot;api&quot;
+model = &quot;gpt-4o&quot;
+name = &quot;GPT-4o&quot;
+system_prompt = &quot;Focus on correctness and edge cases.&quot;
+
+[[agents]]
+provider = &quot;claude&quot;
+mode = &quot;cli&quot;
+name = &quot;Claude-CLI&quot;
+# No system prompt - uses authentic CLI behavior
+
+[[agents]]
+provider = &quot;codex&quot;
+mode = &quot;cli&quot;
+name = &quot;Codex&quot;
+# Code-focused perspective
+</code></pre>
+<h2>API vs CLI Mode</h2>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>API Mode</th>
+<th>CLI Mode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Speed</td>
+<td>Faster (direct calls)</td>
+<td>Slower (subprocess)</td>
+</tr>
+<tr>
+<td>Control</td>
+<td>Full control (system prompts, params)</td>
+<td>Limited (CLI defaults)</td>
+</tr>
+<tr>
+<td>Authenticity</td>
+<td>Controlled environment</td>
+<td>Real agent behavior</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>Pay per token</td>
+<td>Depends on CLI pricing</td>
+</tr>
+<tr>
+<td>Exploration</td>
+<td>Limited</td>
+<td>Full tool access</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> Use API mode for controlled experiments and CLI mode when you want to test authentic agent interactions.</p>
+<h2>System Prompts</h2>
+<p>Customize agent perspectives with system prompts:</p>
+<pre><code class="language-toml">[[agents]]
+provider = &quot;claude&quot;
+mode = &quot;api&quot;
+name = &quot;DevOps-Engineer&quot;
+system_prompt = &quot;&quot;&quot;You are an experienced DevOps engineer who values:
+- Reliability and operational simplicity
+- Clear error messages and debugging support
+- Consistent behavior across environments
+
+Focus on operational concerns when evaluating this tool.&quot;&quot;&quot;
+
+[[agents]]
+provider = &quot;claude&quot;
+mode = &quot;api&quot;
+name = &quot;Junior-Developer&quot;
+system_prompt = &quot;&quot;&quot;You are a junior developer who is:
+- Still learning CLI conventions
+- Easily confused by complex options
+- Appreciative of good documentation and examples
+
+Evaluate this tool from a beginner's perspective.&quot;&quot;&quot;
+</code></pre>
+<p>See also: <a href="configuration.html" class="wikilink">configuration</a> for full config options, <a href="exploration.html" class="wikilink">exploration</a> for letting agents run tools.</p>
+<h2>Troubleshooting</h2>
+<h3>Claude API Issues</h3>
+<pre><code class="language-bash"># Verify API key is set
+echo $ANTHROPIC_API_KEY
+
+# Test directly
+curl https://api.anthropic.com/v1/messages \
+  -H &quot;x-api-key: $ANTHROPIC_API_KEY&quot; \
+  -H &quot;anthropic-version: 2023-06-01&quot; \
+  -d '{&quot;model&quot;:&quot;claude-sonnet-4-20250514&quot;,&quot;max_tokens&quot;:10,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Hi&quot;}]}'
+</code></pre>
+<h3>OpenAI API Issues</h3>
+<pre><code class="language-bash"># Verify API key
+echo $OPENAI_API_KEY
+
+# Test directly
+curl https://api.openai.com/v1/chat/completions \
+  -H &quot;Authorization: Bearer $OPENAI_API_KEY&quot; \
+  -d '{&quot;model&quot;:&quot;gpt-4o&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Hi&quot;}]}'
+</code></pre>
+<h3>CLI Agent Issues</h3>
+<pre><code class="language-bash"># Verify Claude CLI
+claude --version
+claude &quot;Hello&quot;
+
+# Verify Codex CLI
+codex --version
+codex &quot;Hello&quot;
+</code></pre>
+
+        </div>
+    </article>
+</div>
+        </main>
+
+        <!-- Right panel -->
+        <aside class="panel">
+            
+        <div class="panel-section">
+            <div class="panel-header">Outgoing Links</div>
+            <ul class="link-list">
+                <li class="link-item">
+                    <a href="/configuration.html">
+                        <div class="link-title">Configuration Reference</div>
+                        <div class="link-path">configuration</div>
+                    </a>
+                </li>
+                <li class="link-item">
+                    <a href="/exploration.html">
+                        <div class="link-title">Exploration Mode</div>
+                        <div class="link-path">exploration</div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="panel-section">
+            <div class="panel-header">Backlinks</div>
+            <ul class="link-list">
+                <li class="link-item">
+                    <a href="/configuration.html">
+                        <div class="link-title">Configuration Reference</div>
+                        <div class="link-path">configuration</div>
+                    </a>
+                </li>
+                <li class="link-item">
+                    <a href="/exploration.html">
+                        <div class="link-title">Exploration Mode</div>
+                        <div class="link-path">exploration</div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        </aside>
+    </div>
+
+    <script>window.BASE_URL = "";</script>
+    <script src="/assets/search.js"></script>
+    <script>hljs.highlightAll(); mermaid.initialize({startOnLoad: true, theme: 'dark'});</script>
+</body>
+</html>

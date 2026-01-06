@@ -1,3 +1,9 @@
+---
+title: Configuration Reference
+tags: [focusgroup, configuration, reference]
+created: 2026-01-06
+---
+
 # Configuration Reference
 
 Focusgroup uses TOML configuration files for full session control. This document describes all available options.
@@ -58,10 +64,10 @@ Controls overall session behavior.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `name` | string | auto-generated | Session identifier |
-| `mode` | string | `"single"` | Session mode: `single`, `discussion`, or `structured` |
+| `mode` | string | `"single"` | Session mode: `single`, `discussion`, or `structured` (see [[modes]]) |
 | `moderator` | bool | `false` | Enable a moderator agent to synthesize feedback |
 | `parallel_agents` | bool | `true` | Query agents concurrently vs sequentially |
-| `exploration` | bool | `false` | Allow agents to run tool commands |
+| `exploration` | bool | `false` | Allow agents to run tool commands (see [[exploration]]) |
 | `agent_timeout` | integer | none | Timeout in seconds for all agents (overrides defaults) |
 
 ### `[session.moderator_agent]`
@@ -92,7 +98,7 @@ Define one or more agents. At least one agent is required.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `provider` | string | **required** | `claude`, `codex`, or custom provider name |
+| `provider` | string | **required** | `claude`, `codex`, or custom provider name (see [[providers]]) |
 | `model` | string | provider default | Specific model to use |
 | `name` | string | auto-generated | Display name for this agent |
 | `system_prompt` | string | none | Custom system prompt for this agent |

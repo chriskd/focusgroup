@@ -1,0 +1,78 @@
+{
+  "nodes": [
+    {
+      "id": "modes",
+      "title": "Session Modes",
+      "tags": [
+        "focusgroup",
+        "modes",
+        "sessions"
+      ],
+      "url": "modes.html"
+    },
+    {
+      "id": "configuration",
+      "title": "Configuration Reference",
+      "tags": [
+        "focusgroup",
+        "configuration",
+        "reference"
+      ],
+      "url": "configuration.html"
+    },
+    {
+      "id": "providers",
+      "title": "Agent Providers Guide",
+      "tags": [
+        "focusgroup",
+        "providers",
+        "agents"
+      ],
+      "url": "providers.html"
+    },
+    {
+      "id": "exploration",
+      "title": "Exploration Mode",
+      "tags": [
+        "focusgroup",
+        "exploration",
+        "security"
+      ],
+      "url": "exploration.html"
+    }
+  ],
+  "edges": [
+    {
+      "source": "modes",
+      "target": "configuration"
+    },
+    {
+      "source": "modes",
+      "target": "exploration"
+    },
+    {
+      "source": "configuration",
+      "target": "providers"
+    },
+    {
+      "source": "configuration",
+      "target": "modes"
+    },
+    {
+      "source": "configuration",
+      "target": "exploration"
+    },
+    {
+      "source": "providers",
+      "target": "configuration"
+    },
+    {
+      "source": "providers",
+      "target": "exploration"
+    },
+    {
+      "source": "exploration",
+      "target": "providers"
+    }
+  ]
+}

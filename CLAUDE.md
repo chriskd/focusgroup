@@ -40,6 +40,43 @@ bd create "title" --description="..." -t feature -p 2 --json
 bd sync               # Always run at end of session
 ```
 
+## Documentation (Memex KB)
+
+Documentation lives in `kb/` as a memex knowledge base and is published to `docs/` for GitHub Pages.
+
+```bash
+# Set environment for mx commands
+export MEMEX_KB_ROOT=/srv/fast/code/focusgroup/kb
+export MEMEX_INDEX_ROOT=/srv/fast/code/focusgroup/.memex-indices
+
+# View KB structure
+mx tree
+
+# Search documentation
+mx search "configuration"
+
+# Add a new entry
+mx add --title="New Topic" --tags="focusgroup,topic" --content="# Content..."
+
+# Publish to docs/ for GitHub Pages
+mx publish -o docs
+```
+
+### Workflow
+
+1. Edit markdown files in `kb/` (entries need YAML frontmatter with `title`, `tags`, `created`)
+2. Use `[[wikilinks]]` to link between entries
+3. Run `mx publish -o docs` to regenerate the static site
+4. Commit both `kb/` and `docs/` changes
+
+### Rebuilding Indices
+
+The `.memex-indices/` directory is gitignored. To rebuild after a fresh clone:
+
+```bash
+mx reindex
+```
+
 ## Architecture Notes
 
 *To be documented as architecture emerges.*

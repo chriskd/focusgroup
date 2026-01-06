@@ -1,3 +1,9 @@
+---
+title: Session Modes
+tags: [focusgroup, modes, sessions]
+created: 2026-01-06
+---
+
 # Session Modes
 
 Focusgroup offers three session modes that control how agents interact and provide feedback. Choose the mode that best fits your evaluation goals.
@@ -243,6 +249,8 @@ The moderator:
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+See also: [[configuration]] for full config reference, [[exploration]] for letting agents run the tool.
 
 ## Parallel vs Sequential
 

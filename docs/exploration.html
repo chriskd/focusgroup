@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exploration Mode - Memex</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/lunr@2.3.9/lunr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <a href="/" class="logo">
+                <div class="logo-mark"></div>
+                <div class="logo-text">Memex<span> / knowledge</span></div>
+            </a>
+
+            <div class="search-container">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" id="search-input" placeholder="Search knowledge base..." autocomplete="off">
+                <div id="search-results"></div>
+            </div>
+
+            <div class="header-nav">
+                <a href="/" class="nav-link active">Reader</a>
+                <a href="/graph.html" class="nav-link">Graph</a>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">Categories</div>
+            <div class="tree">
+            <a href="/configuration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">configuration</span>
+            </a>
+            <a href="/exploration.html" class="tree-item active">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">exploration</span>
+            </a>
+            <a href="/modes.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">modes</span>
+            </a>
+            <a href="/providers.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">providers</span>
+            </a></div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main">
+            
+<div class="reader-container">
+    <article class="entry">
+        <header class="entry-header">
+            <div class="entry-path">exploration</div>
+            <h1 class="entry-title">Exploration Mode</h1>
+            <div class="entry-meta">
+                
+                <div class="entry-meta-item">Created: <span>2026-01-06 00:00:00</span></div>
+                
+            </div>
+            
+            <div class="entry-tags">
+                
+                <a href="/tags/focusgroup.html" class="tag">focusgroup</a>
+                
+                <a href="/tags/exploration.html" class="tag">exploration</a>
+                
+                <a href="/tags/security.html" class="tag">security</a>
+                
+            </div>
+            
+        </header>
+        <div class="entry-content">
+            <h1>Exploration Mode</h1>
+<p>Exploration mode lets agents actually run the tool being evaluated, rather than just reading its help output. This provides more authentic feedback based on real interaction.</p>
+<h2>Overview</h2>
+<p>By default, focusgroup shows agents the tool's <code>--help</code> output and asks them to provide feedback. With exploration mode enabled, agents can:</p>
+<ul>
+<li>Run the tool with various arguments</li>
+<li>Explore subcommands</li>
+<li>Test edge cases</li>
+<li>Discover issues through actual use</li>
+</ul>
+<h2>Enabling Exploration</h2>
+<h3>Via CLI</h3>
+<pre><code class="language-bash">focusgroup ask mx &quot;Try searching for deployment docs&quot; --explore
+</code></pre>
+<h3>Via Config</h3>
+<pre><code class="language-toml">[session]
+exploration = true  # Enable for all agents
+
+# Or per-agent:
+[[agents]]
+provider = &quot;claude&quot;
+mode = &quot;cli&quot;
+exploration = true  # Just this agent can explore
+</code></pre>
+<h2>How It Works</h2>
+<ol>
+<li><strong>Context Enhancement</strong>: Agents receive instructions on how to run the tool</li>
+<li><strong>Tool Access</strong>: CLI-mode agents can execute the tool command</li>
+<li><strong>Interactive Feedback</strong>: Agents explore, then report findings</li>
+</ol>
+<h3>What Agents See</h3>
+<p>With exploration enabled, agents receive additional context:</p>
+<pre><code>## Interactive Exploration
+
+**IMPORTANT**: You can and should run `mytool` commands to explore
+this tool before giving feedback!
+
+### How to Explore
+1. Try the basic help: mytool --help
+2. Explore subcommands: mytool &lt;subcommand&gt; --help
+3. Try common operations
+4. Explore subcommands that interest you
+</code></pre>
+<h2>Requirements</h2>
+<p>Exploration works best with CLI-mode agents (see <a href="providers.html" class="wikilink">providers</a> for setup):</p>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>Mode</th>
+<th>Exploration Support</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude</td>
+<td>CLI</td>
+<td>Full support</td>
+</tr>
+<tr>
+<td>Codex</td>
+<td>CLI</td>
+<td>Full support</td>
+</tr>
+<tr>
+<td>Claude</td>
+<td>API</td>
+<td>Limited (no shell access)</td>
+</tr>
+<tr>
+<td>OpenAI</td>
+<td>API</td>
+<td>Limited (no shell access)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> Use CLI-mode agents for exploration.</p>
+<h2>Example: Exploring a Search Tool</h2>
+<pre><code class="language-toml">[session]
+name = &quot;memex-exploration&quot;
+mode = &quot;single&quot;
+exploration = true
+moderator = true
+
+[tool]
+command = &quot;mx&quot;
+
+[[agents]]
+provider = &quot;claude&quot;
+mode = &quot;cli&quot;
+name = &quot;Explorer-1&quot;
+
+[[agents]]
+provider = &quot;codex&quot;
+mode = &quot;cli&quot;
+name = &quot;Explorer-2&quot;
+
+[questions]
+rounds = [
+    &quot;Explore this knowledge base tool. Try searching for various topics, then report what worked well and what was confusing.&quot;,
+]
+</code></pre>
+<h3>Sample Session Output</h3>
+<pre><code>## Explorer-1 (Claude-CLI)
+
+I explored the `mx` tool by running several commands:
+
+1. `mx --help` - Good overview, clear subcommand list
+2. `mx search &quot;deployment&quot;` - Found relevant docs quickly
+3. `mx search &quot;nonexistent-topic&quot;` - Helpful &quot;no results&quot; message
+4. `mx get docs/deployment.md` - Retrieved full content
+
+**What worked well:**
+- Search is fast and results are relevant
+- Error messages are clear
+
+**What was confusing:**
+- Unclear difference between `search` and `list`
+- No obvious way to see all available tags
+
+## Explorer-2 (Codex-CLI)
+
+I tested the tool with various inputs:
+
+1. Basic search worked well
+2. Tried `mx add` but wasn't sure about required fields
+3. `mx tree` gave a good overview of structure
+
+**Suggestions:**
+- Add examples to each subcommand's help
+- Show available tags in search results
+</code></pre>
+<h2>Security Considerations</h2>
+<blockquote>
+<p><strong>WARNING</strong>: Exploration mode grants agents significant system access. Read this section carefully before enabling exploration.</p>
+</blockquote>
+<h3>What Permissions Are Granted</h3>
+<p>CLI-mode agents run with <strong>relaxed permission controls</strong> to enable tool exploration:</p>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>Mode</th>
+<th>Permission Flags</th>
+<th>What This Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude</td>
+<td>CLI</td>
+<td><code>--dangerously-skip-permissions</code></td>
+<td>Bypasses all permission prompts; agent can run any command without approval</td>
+</tr>
+<tr>
+<td>Codex</td>
+<td>CLI (explore)</td>
+<td><code>--sandbox danger-full-access</code></td>
+<td>Removes sandbox restrictions; full filesystem and network access</td>
+</tr>
+<tr>
+<td>Codex</td>
+<td>CLI (no explore)</td>
+<td><code>--full-auto</code></td>
+<td>Standard Codex safety checks apply</td>
+</tr>
+<tr>
+<td>Claude/OpenAI</td>
+<td>API</td>
+<td>N/A</td>
+<td>No shell access; limited to API-only interactions</td>
+</tr>
+</tbody>
+</table>
+<h3>What Agents Can Access</h3>
+<p>With exploration mode enabled, CLI agents can:</p>
+<ul>
+<li><strong>Filesystem</strong>: Read, write, and delete any files accessible to your user account</li>
+<li><strong>Network</strong>: Make HTTP requests, download files, connect to services</li>
+<li><strong>Shell Commands</strong>: Run arbitrary shell commands (git, curl, rm, etc.)</li>
+<li><strong>Environment</strong>: Access environment variables, including secrets in your shell</li>
+<li><strong>Other Tools</strong>: Invoke any CLI tools installed on your system</li>
+</ul>
+<h3>Why These Permissions?</h3>
+<p>Exploration mode exists to let agents <strong>actually use</strong> tools and give authentic feedback. An agent exploring a CLI tool needs to run that tool—which requires shell access. Sandbox restrictions would prevent agents from testing the very tool you want feedback on.</p>
+<p>This is a deliberate trade-off: <strong>useful exploration feedback requires real tool access</strong>.</p>
+<h3>Recommendations</h3>
+<h4>1. Run in Isolated Environments</h4>
+<p>The safest approach is to run focusgroup exploration in an isolated environment:</p>
+<pre><code class="language-bash"># Use a container
+docker run -it --rm -v $(pwd):/workspace myimage focusgroup ask mytool &quot;...&quot; --explore
+
+# Use a VM
+# Run focusgroup inside a disposable VM or devcontainer
+
+# Use a separate user account
+# Create a low-privilege account specifically for exploration
+</code></pre>
+<h4>2. Review Tools Before Exploration</h4>
+<p>Before enabling exploration for a tool:</p>
+<ul>
+<li>Understand what the tool can do (especially write operations)</li>
+<li>Check if the tool accesses sensitive data or services</li>
+<li>Consider using read-only tools first to test the setup</li>
+</ul>
+<h4>3. Limit What's in the Environment</h4>
+<pre><code class="language-bash"># Run with a clean environment to limit exposed secrets
+env -i PATH=&quot;$PATH&quot; HOME=&quot;$HOME&quot; focusgroup ask mytool &quot;...&quot; --explore
+
+# Or explicitly set only needed variables
+export MYTOOL_API_KEY=xxx  # Only what's needed
+focusgroup ask mytool &quot;...&quot; --explore
+</code></pre>
+<h4>4. Use API Mode for Untrusted Scenarios</h4>
+<p>If you can't isolate the environment, use API-mode agents instead:</p>
+<pre><code class="language-toml">[[agents]]
+provider = &quot;claude&quot;
+mode = &quot;api&quot;  # No shell access, safer but can't explore
+</code></pre>
+<p>API agents can still review documentation and help text, but cannot run commands.</p>
+<h3>Risk Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Risk Level</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Exploring your own read-only tool in a dev container</td>
+<td>Low</td>
+<td>Safe to proceed</td>
+</tr>
+<tr>
+<td>Exploring any tool in a VM/container</td>
+<td>Low</td>
+<td>Safe to proceed</td>
+</tr>
+<tr>
+<td>Exploring read-only tools on your main system</td>
+<td>Medium</td>
+<td>Acceptable with caution</td>
+</tr>
+<tr>
+<td>Exploring write-capable tools on your main system</td>
+<td>High</td>
+<td>Use isolated environment</td>
+</tr>
+<tr>
+<td>Running exploration with sensitive secrets in env</td>
+<td>High</td>
+<td>Clean environment or container</td>
+</tr>
+</tbody>
+</table>
+<h3>Future: Sandbox Level Control</h3>
+<p>A <code>--sandbox-level</code> flag for granular control is planned but not yet implemented. For now, exploration mode is all-or-nothing with respect to permissions.</p>
+<h2>Best Practices</h2>
+<h3>1. Use Specific Questions</h3>
+<pre><code class="language-toml"># Good: Specific exploration task
+rounds = [&quot;Search for 'deployment' and 'API' topics, then compare the results&quot;]
+
+# Less effective: Vague request
+rounds = [&quot;Explore this tool&quot;]
+</code></pre>
+<h3>2. Combine with Discussion Mode</h3>
+<pre><code class="language-toml">[session]
+mode = &quot;discussion&quot;
+exploration = true
+
+[questions]
+rounds = [
+    &quot;Each of you explore different aspects of this tool.&quot;,
+    &quot;Share what you found. What patterns do you see?&quot;,
+    &quot;Based on everyone's exploration, what should be prioritized?&quot;,
+]
+</code></pre>
+<h3>3. Use Moderator for Synthesis</h3>
+<pre><code class="language-toml">[session]
+exploration = true
+moderator = true  # Synthesize exploration findings
+</code></pre>
+<h3>4. Mix API and CLI Agents</h3>
+<pre><code class="language-toml"># CLI agents explore, API agents analyze
+[[agents]]
+provider = &quot;claude&quot;
+mode = &quot;cli&quot;
+name = &quot;Explorer&quot;
+exploration = true
+
+[[agents]]
+provider = &quot;claude&quot;
+mode = &quot;api&quot;
+name = &quot;Analyst&quot;
+system_prompt = &quot;Analyze the explorer's findings and suggest improvements.&quot;
+</code></pre>
+<h2>Troubleshooting</h2>
+<h3>Agent Can't Run Commands</h3>
+<ul>
+<li>Ensure you're using CLI mode (<code>mode = &quot;cli&quot;</code>)</li>
+<li>Verify the CLI tool is installed (<code>claude --version</code>, <code>codex --version</code>)</li>
+<li>Check that the tool being evaluated is in PATH</li>
+</ul>
+<h3>Exploration Too Slow</h3>
+<ul>
+<li>Reduce number of agents</li>
+<li>Use <code>parallel_agents = false</code> to run sequentially</li>
+<li>Limit the scope of exploration in your question</li>
+</ul>
+<h3>Agent Runs Wrong Commands</h3>
+<ul>
+<li>Provide more specific instructions in your question</li>
+<li>Use <code>working_dir</code> to set the right directory</li>
+<li>Ensure tool name is clear and unambiguous</li>
+</ul>
+
+        </div>
+    </article>
+</div>
+        </main>
+
+        <!-- Right panel -->
+        <aside class="panel">
+            
+        <div class="panel-section">
+            <div class="panel-header">Outgoing Links</div>
+            <ul class="link-list">
+                <li class="link-item">
+                    <a href="/providers.html">
+                        <div class="link-title">Agent Providers Guide</div>
+                        <div class="link-path">providers</div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="panel-section">
+            <div class="panel-header">Backlinks</div>
+            <ul class="link-list">
+                <li class="link-item">
+                    <a href="/configuration.html">
+                        <div class="link-title">Configuration Reference</div>
+                        <div class="link-path">configuration</div>
+                    </a>
+                </li>
+                <li class="link-item">
+                    <a href="/modes.html">
+                        <div class="link-title">Session Modes</div>
+                        <div class="link-path">modes</div>
+                    </a>
+                </li>
+                <li class="link-item">
+                    <a href="/providers.html">
+                        <div class="link-title">Agent Providers Guide</div>
+                        <div class="link-path">providers</div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        </aside>
+    </div>
+
+    <script>window.BASE_URL = "";</script>
+    <script src="/assets/search.js"></script>
+    <script>hljs.highlightAll(); mermaid.initialize({startOnLoad: true, theme: 'dark'});</script>
+</body>
+</html>

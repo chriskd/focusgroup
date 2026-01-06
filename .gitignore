@@ -28,3 +28,6 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Memex indices (rebuild with: mx reindex)
+.memex-indices/

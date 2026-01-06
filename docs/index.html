@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - Memex</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/lunr@2.3.9/lunr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <a href="/" class="logo">
+                <div class="logo-mark"></div>
+                <div class="logo-text">Memex<span> / knowledge</span></div>
+            </a>
+
+            <div class="search-container">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" id="search-input" placeholder="Search knowledge base..." autocomplete="off">
+                <div id="search-results"></div>
+            </div>
+
+            <div class="header-nav">
+                <a href="/" class="nav-link active">Reader</a>
+                <a href="/graph.html" class="nav-link">Graph</a>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">Categories</div>
+            <div class="tree">
+            <a href="/configuration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">configuration</span>
+            </a>
+            <a href="/exploration.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">exploration</span>
+            </a>
+            <a href="/modes.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">modes</span>
+            </a>
+            <a href="/providers.html" class="tree-item">
+                <span class="tree-icon file">◇</span>
+                <span class="tree-label">providers</span>
+            </a></div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main">
+            
+<div class="index-container">
+    <h1>Knowledge Base</h1>
+    <section class="index-section">
+        <h2>Recent Entries</h2>
+        <ul class="entry-list">
+            
+            <li>
+                <a href="/modes.html">Session Modes</a>
+                
+                <span class="entry-date">2026-01-06 00:00:00</span>
+                
+            </li>
+            
+            <li>
+                <a href="/configuration.html">Configuration Reference</a>
+                
+                <span class="entry-date">2026-01-06 00:00:00</span>
+                
+            </li>
+            
+            <li>
+                <a href="/providers.html">Agent Providers Guide</a>
+                
+                <span class="entry-date">2026-01-06 00:00:00</span>
+                
+            </li>
+            
+            <li>
+                <a href="/exploration.html">Exploration Mode</a>
+                
+                <span class="entry-date">2026-01-06 00:00:00</span>
+                
+            </li>
+            
+        </ul>
+    </section>
+    <section class="index-section">
+        <h2>Tags</h2>
+        <div class="tags-cloud">
+            
+            <a href="/tags/focusgroup.html" class="tag">
+                focusgroup (4)
+            </a>
+            
+            <a href="/tags/agents.html" class="tag">
+                agents (1)
+            </a>
+            
+            <a href="/tags/configuration.html" class="tag">
+                configuration (1)
+            </a>
+            
+            <a href="/tags/exploration.html" class="tag">
+                exploration (1)
+            </a>
+            
+            <a href="/tags/modes.html" class="tag">
+                modes (1)
+            </a>
+            
+            <a href="/tags/providers.html" class="tag">
+                providers (1)
+            </a>
+            
+            <a href="/tags/reference.html" class="tag">
+                reference (1)
+            </a>
+            
+            <a href="/tags/security.html" class="tag">
+                security (1)
+            </a>
+            
+            <a href="/tags/sessions.html" class="tag">
+                sessions (1)
+            </a>
+            
+        </div>
+    </section>
+</div>
+        </main>
+
+        <!-- Right panel -->
+        <aside class="panel">
+            
+        <div class="panel-section">
+            <div class="panel-header">Welcome</div>
+            <p class="empty-state">Select an entry to view its connections</p>
+        </div>
+    
+        </aside>
+    </div>
+
+    <script>window.BASE_URL = "";</script>
+    <script src="/assets/search.js"></script>
+    <script>hljs.highlightAll(); mermaid.initialize({startOnLoad: true, theme: 'dark'});</script>
+</body>
+</html>

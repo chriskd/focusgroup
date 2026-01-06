@@ -1,3 +1,9 @@
+---
+title: Agent Providers Guide
+tags: [focusgroup, providers, agents]
+created: 2026-01-06
+---
+
 # Agent Providers Guide
 
 Focusgroup supports multiple LLM providers, each with API and/or CLI modes. This guide covers setup and best practices for each.
@@ -6,9 +12,9 @@ Focusgroup supports multiple LLM providers, each with API and/or CLI modes. This
 
 | Provider | API Mode | CLI Mode | Best For |
 |----------|----------|----------|----------|
-| Claude (Anthropic) | ✅ | ✅ | General feedback, nuanced analysis |
-| OpenAI | ✅ | ❌ | Alternative perspective, GPT-4o capabilities |
-| Codex (OpenAI) | ❌ | ✅ | Code-focused feedback, authentic CLI behavior |
+| Claude (Anthropic) | Yes | Yes | General feedback, nuanced analysis |
+| OpenAI | Yes | No | Alternative perspective, GPT-4o capabilities |
+| Codex (OpenAI) | No | Yes | Code-focused feedback, authentic CLI behavior |
 
 ## Claude (Anthropic)
 
@@ -187,6 +193,8 @@ system_prompt = """You are a junior developer who is:
 
 Evaluate this tool from a beginner's perspective."""
 ```
+
+See also: [[configuration]] for full config options, [[exploration]] for letting agents run tools.
 
 ## Troubleshooting
 
