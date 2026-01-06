@@ -41,6 +41,15 @@
       "url": "providers.html"
     },
     {
+      "id": "quick-start",
+      "title": "Quick Start",
+      "tags": [
+        "focusgroup",
+        "getting-started"
+      ],
+      "url": "quick-start.html"
+    },
+    {
       "id": "json-formats",
       "title": "JSON Output Formats",
       "tags": [
@@ -76,11 +85,11 @@
   "edges": [
     {
       "source": "modes",
-      "target": "exploration"
+      "target": "configuration"
     },
     {
       "source": "modes",
-      "target": "configuration"
+      "target": "exploration"
     },
     {
       "source": "configuration",
@@ -96,10 +105,30 @@
     },
     {
       "source": "providers",
-      "target": "exploration"
+      "target": "configuration"
     },
     {
       "source": "providers",
+      "target": "exploration"
+    },
+    {
+      "source": "quick-start",
+      "target": "providers"
+    },
+    {
+      "source": "quick-start",
+      "target": "configuration"
+    },
+    {
+      "source": "quick-start",
+      "target": "exploration"
+    },
+    {
+      "source": "quick-start",
+      "target": "modes"
+    },
+    {
+      "source": "json-formats",
       "target": "configuration"
     },
     {
@@ -111,20 +140,16 @@
       "target": "modes"
     },
     {
-      "source": "json-formats",
-      "target": "configuration"
-    },
-    {
       "source": "exploration",
       "target": "providers"
     },
     {
       "source": "structured-feedback",
-      "target": "json-formats"
+      "target": "configuration"
     },
     {
       "source": "structured-feedback",
-      "target": "configuration"
+      "target": "json-formats"
     }
   ]
 }
