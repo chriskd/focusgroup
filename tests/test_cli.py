@@ -98,6 +98,52 @@ format = "json"
         assert "How usable" in result.stdout
         assert "2" in result.stdout  # Two questions
 
+    def test_run_dry_run_json_output(self, tmp_path: Path):
+        """Dry run with --json outputs parseable JSON."""
+        import json
+
+        config_content = """
+[session]
+name = "Test Session"
+mode = "single"
+moderator = true
+
+[tool]
+command = "mx"
+
+[[agents]]
+provider = "claude"
+name = "Claude Expert"
+model = "claude-sonnet-4-20250514"
+
+[[agents]]
+provider = "codex"
+name = "Codex Expert"
+
+[questions]
+rounds = [
+    "How usable is this CLI?",
+    "What would you improve?"
+]
+
+[output]
+format = "json"
+"""
+        config_file = tmp_path / "session.toml"
+        config_file.write_text(config_content)
+
+        result = runner.invoke(app, ["run", str(config_file), "--dry-run", "--json"])
+
+        assert result.exit_code == 0
+        # Output should be valid JSON
+        data = json.loads(result.stdout)
+        assert data["tool"] == "mx"
+        assert data["mode"] == "single"
+        assert data["moderator_enabled"] is True
+        assert len(data["agents"]) == 2
+        assert len(data["questions"]) == 2
+        assert data["agents"][0]["name"] == "Claude Expert"
+
 
 class TestAgentsCommands:
     """Test 'agents' subcommand group."""
@@ -388,6 +434,18 @@ class TestAskCommand:
         assert result.exit_code == 0
         mock_run.assert_called_once()
 
+    @patch("focusgroup.cli.asyncio.run")
+    def test_ask_reads_context_from_stdin(self, mock_run):
+        """Ask command reads context from stdin when - is provided."""
+        mock_run.return_value = None
+        result = runner.invoke(
+            app,
+            ["ask", "Review this?", "--context", "-", "--tool", "myapi"],
+            input="This is content piped from stdin",
+        )
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+
 
 class TestInferToolFromContext:
     """Test tool name inference from context."""
@@ -414,6 +472,10 @@ class TestInferToolFromContext:
         assert infer_tool_from_context("") == "unknown"
         assert infer_tool_from_context("   ") == "unknown"
         assert infer_tool_from_context("@") == "unknown"
+
+    def test_infer_from_stdin_returns_unknown(self):
+        """Returns 'unknown' for stdin context marker."""
+        assert infer_tool_from_context("-") == "unknown"
 
 
 class TestConfigValidation:

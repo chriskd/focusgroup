@@ -324,12 +324,13 @@ def infer_tool_from_context(context: str) -> str:
     """Infer the tool name from a context string.
 
     Args:
-        context: Either "@path/to/file" for file context or a command string
+        context: "@path/to/file" for file, "-" for stdin, or a command string
 
     Returns:
         Inferred tool name:
         - For commands: first token (e.g., "mx --help" -> "mx")
         - For files: filename stem (e.g., "@path/to/README.md" -> "README")
+        - For stdin ("-"): "unknown"
         - Fallback: "unknown"
     """
     if not context or not context.strip():
@@ -337,7 +338,10 @@ def infer_tool_from_context(context: str) -> str:
 
     context = context.strip()
 
-    if context.startswith("@"):
+    if context == "-":
+        # Stdin: can't infer tool name
+        return "unknown"
+    elif context.startswith("@"):
         # File context: use filename stem
         file_path = context[1:].strip()
         if file_path:
@@ -352,18 +356,27 @@ def infer_tool_from_context(context: str) -> str:
 
 
 def resolve_context(context: str) -> str:
-    """Resolve context from a file path or shell command.
+    """Resolve context from stdin, a file path, or shell command.
 
     Args:
-        context: Either "@path/to/file" to read a file, or a shell command to run
+        context: "-" for stdin, "@path/to/file" to read a file, or a shell command
 
     Returns:
-        The file contents or command output
+        The stdin content, file contents, or command output
 
     Raises:
-        typer.Exit: If file not found or command fails
+        typer.Exit: If file not found, command fails, or stdin read fails
     """
-    if context.startswith("@"):
+    import sys
+
+    if context == "-":
+        # Read from stdin
+        try:
+            return sys.stdin.read()
+        except Exception as e:
+            console.print(f"[red]Failed to read from stdin: {e}[/red]")
+            raise typer.Exit(1) from None
+    elif context.startswith("@"):
         # Read from file
         file_path = Path(context[1:]).expanduser()
         if not file_path.exists():
@@ -430,6 +443,9 @@ ASK_EXAMPLES = """
   Query with file context (tool inferred as "README"):
   [dim]$ focusgroup ask "What's missing from these docs?" -x "@README.md"[/dim]
 
+  Piped context from stdin (use --tool for labeling):
+  [dim]$ cat API.md | focusgroup ask "Review this API" -x - --tool myapi[/dim]
+
   Explicit tool name override:
   [dim]$ focusgroup ask "Is this clear?" -x "mx --help" --tool memex[/dim]
 
@@ -455,7 +471,7 @@ def ask(
         typer.Option(
             "--context",
             "-x",
-            help="Context command or file: 'mytool --help' or '@README.md'",
+            help="Context: command 'mytool --help', file '@README.md', or stdin '-'",
         ),
     ],
     tool: Annotated[
@@ -658,6 +674,9 @@ RUN_EXAMPLES = """
   Preview what would run (dry run):
   [dim]$ focusgroup run session.toml --dry-run[/dim]
 
+  Dry run with JSON output (for programmatic parsing):
+  [dim]$ focusgroup run session.toml --dry-run --json[/dim]
+
   Save output to a directory:
   [dim]$ focusgroup run session.toml --output-dir ./results[/dim]
 
@@ -684,6 +703,10 @@ def run(
         str | None,
         typer.Option("--format", "-f", help="Output format override: json, markdown, or text"),
     ] = None,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON (for --dry-run only)"),
+    ] = False,
 ) -> None:
     """Run a full feedback session from a config file."""
     if not config_file.exists():
@@ -701,13 +724,43 @@ def run(
         fg_config.output.format = format  # type: ignore
 
     if dry_run:
-        _show_session_plan(fg_config)
+        _show_session_plan(fg_config, json_output=json_output)
     else:
+        if json_output:
+            console.print("[yellow]Warning: --json is only used with --dry-run[/yellow]")
         asyncio.run(_run_impl(fg_config, output_dir))
 
 
-def _show_session_plan(config: FocusgroupConfig) -> None:
+def _show_session_plan(config: FocusgroupConfig, *, json_output: bool = False) -> None:
     """Show what would be done in a session."""
+    import json
+
+    if json_output:
+        plan = {
+            "tool": config.tool.command,
+            "mode": config.session.mode.value,
+            "moderator_enabled": config.session.moderator,
+            "output_format": config.output.format,
+            "exploration_enabled": config.session.exploration,
+            "agents": [
+                {
+                    "name": agent.name,
+                    "provider": agent.provider,
+                    "model": agent.model,
+                    "display_name": agent.display_name,
+                }
+                for agent in config.agents
+            ],
+            "questions": list(config.questions.rounds),
+        }
+        if config.session.moderator_agent:
+            plan["moderator_agent"] = {
+                "provider": config.session.moderator_agent.provider,
+                "name": config.session.moderator_agent.name,
+            }
+        console.print(json.dumps(plan, indent=2))
+        return
+
     console.print("\n[bold]Session Plan[/bold]")
     console.print(f"Tool: [cyan]{config.tool.command}[/cyan]")
     console.print(f"Mode: {config.session.mode.value}")
