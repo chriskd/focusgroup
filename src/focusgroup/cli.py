@@ -571,7 +571,14 @@ ASK_EXAMPLES = """
 """
 
 
-def _show_dry_run(tool: str, question: str, context: str, explore: bool) -> None:
+def _show_dry_run(
+    tool: str,
+    question: str,
+    context: str,
+    explore: bool,
+    *,
+    no_truncate: bool = False,
+) -> None:
     """Show what would be sent to agents without running them.
 
     Args:
@@ -579,6 +586,7 @@ def _show_dry_run(tool: str, question: str, context: str, explore: bool) -> None
         question: The question being asked
         context: Resolved context (command output or file content)
         explore: Whether exploration mode is enabled
+        no_truncate: If True, show full context without truncation
     """
     from focusgroup.tools.base import ToolHelp
 
@@ -592,10 +600,11 @@ def _show_dry_run(tool: str, question: str, context: str, explore: bool) -> None
 
     console.print("\n[bold]─── Context Provided to Agents ───[/bold]\n")
 
-    # Show context (truncated if very long)
-    if len(context) > 2000:
+    # Show context (truncated if very long, unless --no-truncate is specified)
+    if len(context) > 2000 and not no_truncate:
         console.print(context[:1500])
-        console.print(f"\n[dim]... ({len(context) - 1500} more characters truncated) ...[/dim]\n")
+        console.print(f"\n[dim]... ({len(context) - 1500} more characters truncated) ...[/dim]")
+        console.print("[dim]Use --no-truncate to see full context[/dim]\n")
         console.print(context[-500:])
     else:
         console.print(context)
@@ -704,6 +713,14 @@ def ask(
             "Useful for previewing --explore prompts.",
         ),
     ] = False,
+    no_truncate: Annotated[
+        bool,
+        typer.Option(
+            "--no-truncate",
+            help="Show full context without truncation (for --dry-run). "
+            "Useful for verifying exact prompts sent to agents.",
+        ),
+    ] = False,
     yes: Annotated[
         bool,
         typer.Option(
@@ -738,7 +755,9 @@ def ask(
 
     # Handle dry-run: show what would be sent to agents
     if dry_run:
-        _show_dry_run(effective_tool, question, resolved_context, explore)
+        _show_dry_run(
+            effective_tool, question, resolved_context, explore, no_truncate=no_truncate
+        )
         return
 
     # Cost estimation and confirmation
@@ -1387,7 +1406,7 @@ def agents_init(
 
     console.print(f"[green]✓[/green] Created preset: {preset_path}")
     console.print("\n[dim]Edit to customize, then use in config files:[/dim]")
-    console.print(f'  \\[\\[agents]]  # in your session.toml')
+    console.print('  \\[\\[agents]]  # in your session.toml')
     console.print(f'  preset = "{name}"')
 
 
