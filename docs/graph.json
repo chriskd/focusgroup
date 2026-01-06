@@ -76,14 +76,10 @@
   "edges": [
     {
       "source": "modes",
-      "target": "exploration"
-    },
-    {
-      "source": "modes",
       "target": "configuration"
     },
     {
-      "source": "configuration",
+      "source": "modes",
       "target": "exploration"
     },
     {
@@ -95,12 +91,16 @@
       "target": "modes"
     },
     {
-      "source": "providers",
+      "source": "configuration",
       "target": "exploration"
     },
     {
       "source": "providers",
       "target": "configuration"
+    },
+    {
+      "source": "providers",
+      "target": "exploration"
     },
     {
       "source": "json-formats",
