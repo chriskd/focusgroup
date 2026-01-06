@@ -17,16 +17,23 @@ class SessionMode(str, Enum):
 
 
 class AgentProvider(str, Enum):
-    """Supported agent providers (CLI-only)."""
+    """Built-in agent providers (CLI-only)."""
 
     CLAUDE = "claude"
     CODEX = "codex"
 
 
+def _get_provider_value(provider: "AgentProvider | str") -> str:
+    """Get the string value of a provider (enum or custom string)."""
+    if isinstance(provider, AgentProvider):
+        return provider.value
+    return provider
+
+
 class AgentConfig(BaseModel):
     """Configuration for a single agent in the panel."""
 
-    provider: AgentProvider
+    provider: AgentProvider | str  # Built-in enum or custom provider name
     model: str | None = None
     name: str | None = None  # Display name, defaults to provider
     system_prompt: str | None = None
@@ -34,13 +41,24 @@ class AgentConfig(BaseModel):
     timeout: int | None = None  # Agent timeout in seconds (None = use default)
 
     @property
+    def provider_name(self) -> str:
+        """Get the provider name as a string."""
+        return _get_provider_value(self.provider)
+
+    @property
+    def is_builtin_provider(self) -> bool:
+        """Check if this uses a built-in provider."""
+        return isinstance(self.provider, AgentProvider)
+
+    @property
     def display_name(self) -> str:
         """Get a display name for this agent."""
         if self.name:
             return self.name
+        provider_str = _get_provider_value(self.provider)
         if self.model:
-            return f"{self.provider.value}:{self.model}"
-        return self.provider.value
+            return f"{provider_str}:{self.model}"
+        return provider_str
 
 
 class ToolConfig(BaseModel):
@@ -186,3 +204,43 @@ def list_agent_presets() -> list[tuple[str, Path]]:
     for path in agents_dir.glob("*.toml"):
         presets.append((path.stem, path))
     return sorted(presets)
+
+
+def get_providers_file() -> Path:
+    """Get the path to the custom providers config file."""
+    return get_default_config_dir() / "providers.toml"
+
+
+def load_custom_providers() -> dict[str, dict]:
+    """Load custom provider definitions from providers.toml.
+
+    Returns:
+        Dictionary mapping provider name to its configuration dict.
+        Empty dict if file doesn't exist.
+
+    Example providers.toml:
+        [gemini]
+        command = "gemini"
+        prompt_flag = "-p"
+        model_flag = "--model"
+        timeout = 120
+
+        [ollama]
+        command = "ollama run"
+        positional_prompt = true
+        timeout = 180
+    """
+    providers_path = get_providers_file()
+    if not providers_path.exists():
+        return {}
+
+    with open(providers_path, "rb") as f:
+        data = tomllib.load(f)
+
+    # Each top-level key is a provider name
+    return data
+
+
+def get_custom_provider_names() -> list[str]:
+    """Get list of custom provider names from providers.toml."""
+    return list(load_custom_providers().keys())

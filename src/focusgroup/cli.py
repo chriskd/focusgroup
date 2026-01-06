@@ -62,6 +62,9 @@ logs_app = typer.Typer(help="View and manage session logs.")
 app.add_typer(agents_app, name="agents")
 app.add_typer(logs_app, name="logs")
 
+# Plain mode flag - set by --plain/--no-rich callback
+_plain_mode: bool = False
+
 console = Console()
 
 
@@ -419,8 +422,17 @@ def resolve_context(context: str) -> str:
 def version_callback(value: bool) -> None:
     """Print version and exit."""
     if value:
-        console.print(f"focusgroup {__version__}")
+        print(f"focusgroup {__version__}")
         raise typer.Exit()
+
+
+def plain_callback(value: bool) -> None:
+    """Enable plain text mode (no Rich formatting)."""
+    global _plain_mode, console
+    if value:
+        _plain_mode = True
+        # Replace global console: interprets markup but outputs plain text (no colors)
+        console = Console(force_terminal=False, no_color=True, highlight=False)
 
 
 @app.callback()
@@ -429,6 +441,16 @@ def main(
         bool | None,
         typer.Option("--version", "-v", callback=version_callback, is_eager=True),
     ] = None,
+    plain: Annotated[
+        bool,
+        typer.Option(
+            "--plain",
+            "--no-rich",
+            callback=plain_callback,
+            is_eager=True,
+            help="Disable Rich formatting (for CI/piping).",
+        ),
+    ] = False,
 ) -> None:
     """Focusgroup: LLM agent feedback for tool developers."""
     pass
@@ -609,12 +631,26 @@ async def _ask_impl(
             raise typer.Exit(1) from None
     else:
         # Build a quick config
+        # Try built-in enum first, then custom providers
+        provider_name = provider_str.lower()
         try:
-            prov = AgentProvider(provider_str.lower())
+            prov: AgentProvider | str = AgentProvider(provider_name)
         except ValueError:
-            console.print(f"[red]Unknown provider: {provider_str}[/red]")
-            console.print("Valid options: claude, codex")
-            raise typer.Exit(1) from None
+            # Check custom providers
+            from focusgroup.agents.registry import get_provider_info
+
+            if get_provider_info(provider_name):
+                prov = provider_name
+            else:
+                console.print(f"[red]Unknown provider: {provider_str}[/red]")
+                from focusgroup.agents.registry import get_custom_providers
+
+                custom_names = list(get_custom_providers().keys())
+                if custom_names:
+                    console.print(f"Valid options: claude, codex, {', '.join(custom_names)}")
+                else:
+                    console.print("Valid options: claude, codex")
+                raise typer.Exit(1) from None
 
         # Create N agents with different names
         agent_configs = [
@@ -645,23 +681,38 @@ async def _ask_impl(
     # Run the session with explicit context
     orchestrator = SessionOrchestrator(fg_config, cli_tool, context=context)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-        transient=True,
-    ) as progress:
-        progress.add_task(f"Setting up with {len(fg_config.agents)} agents...", total=None)
+    async def run_with_orchestrator() -> None:
+        """Run orchestrator setup and session."""
         try:
             await orchestrator.setup()
         except Exception as e:
             console.print(f"[red]Setup failed: {e}[/red]")
             raise typer.Exit(1) from None
 
-        progress.add_task(f"Asking about {tool}...", total=None)
         async for _result in orchestrator.run_session():
             # Results stream in, but we wait for all
             pass
+
+    if _plain_mode:
+        console.print(f"Setting up with {len(fg_config.agents)} agents...")
+        console.print(f"Asking about {tool}...")
+        await run_with_orchestrator()
+    else:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+            transient=True,
+        ) as progress:
+            progress.add_task(f"Setting up with {len(fg_config.agents)} agents...", total=None)
+            try:
+                await orchestrator.setup()
+            except Exception as e:
+                console.print(f"[red]Setup failed: {e}[/red]")
+                raise typer.Exit(1) from None
+            progress.add_task(f"Asking about {tool}...", total=None)
+            async for _result in orchestrator.run_session():
+                pass
 
     # Save the session
     session_path = orchestrator.save()
@@ -807,24 +858,39 @@ async def _run_impl(config: FocusgroupConfig, output_dir: Path | None) -> None:
     # Run the session
     orchestrator = SessionOrchestrator(config, cli_tool)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        setup_task = progress.add_task("Setting up session...", total=None)
+    if _plain_mode:
+        console.print("Setting up session...")
         await orchestrator.setup()
-        progress.remove_task(setup_task)
-
         agent_count = len(orchestrator.agents)
-        console.print(f"[green]✓[/green] Session initialized with {agent_count} agents\n")
+        console.print(f"Session initialized with {agent_count} agents\n")
 
         round_count = len(config.questions.rounds)
         for round_num, result in enumerate(await _collect_results(orchestrator)):
             prompt_preview = result.prompt[:60]
-            console.print(f"[bold]Round {round_num + 1}/{round_count}:[/bold] {prompt_preview}...")
+            console.print(f"Round {round_num + 1}/{round_count}: {prompt_preview}...")
             for resp in result.responses:
-                console.print(f"  [cyan]{resp.agent_name}[/cyan]: {len(resp.content)} chars")
+                console.print(f"  {resp.agent_name}: {len(resp.content)} chars")
+    else:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            setup_task = progress.add_task("Setting up session...", total=None)
+            await orchestrator.setup()
+            progress.remove_task(setup_task)
+
+            agent_count = len(orchestrator.agents)
+            console.print(f"[green]✓[/green] Session initialized with {agent_count} agents\n")
+
+            round_count = len(config.questions.rounds)
+            for round_num, result in enumerate(await _collect_results(orchestrator)):
+                prompt_preview = result.prompt[:60]
+                console.print(
+                    f"[bold]Round {round_num + 1}/{round_count}:[/bold] {prompt_preview}..."
+                )
+                for resp in result.responses:
+                    console.print(f"  [cyan]{resp.agent_name}[/cyan]: {len(resp.content)} chars")
 
     # Save the session
     session_path = orchestrator.save()
@@ -902,7 +968,7 @@ def agents_list(
                 data.append(
                     {
                         "name": name,
-                        "provider": preset.provider.value,
+                        "provider": preset.provider_name,
                         "model": preset.model,
                         "display_name": preset.display_name,
                         "has_system_prompt": bool(preset.system_prompt),
@@ -928,7 +994,7 @@ def agents_list(
             console.print(f"\n[bold]{name}[/bold]")
             try:
                 preset = load_agent_preset(path)
-                console.print(f"  Provider: {preset.provider.value}")
+                console.print(f"  Provider: {preset.provider_name}")
                 if preset.model:
                     console.print(f"  Model: {preset.model}")
                 if preset.system_prompt:
@@ -945,7 +1011,7 @@ def agents_list(
         for name, path in presets:
             try:
                 preset = load_agent_preset(path)
-                table.add_row(name, preset.provider.value, preset.model or "-")
+                table.add_row(name, preset.provider_name, preset.model or "-")
             except Exception:
                 table.add_row(name, "[red]error[/red]", "")
 
@@ -1000,7 +1066,7 @@ def agents_show(
     if json_output:
         data = {
             "name": name,
-            "provider": preset.provider.value,
+            "provider": preset.provider_name,
             "model": preset.model,
             "display_name": preset.display_name,
             "system_prompt": preset.system_prompt,
@@ -1010,7 +1076,7 @@ def agents_show(
         return
 
     console.print(f"\n[bold]Agent Preset: {name}[/bold]\n")
-    console.print(f"Provider: [cyan]{preset.provider.value}[/cyan]")
+    console.print(f"Provider: [cyan]{preset.provider_name}[/cyan]")
     if preset.model:
         console.print(f"Model: {preset.model}")
     if preset.name:
@@ -1446,15 +1512,15 @@ def doctor(
     else:
         console.print("[yellow]○ will be created on first use[/yellow]")
 
-    # Check providers
+    # Check built-in providers
     console.print("\n[bold]Providers:[/bold]")
 
-    providers = [
+    builtin_providers = [
         ("claude", "Claude CLI"),
         ("codex", "Codex CLI"),
     ]
 
-    for cmd, name in providers:
+    for cmd, name in builtin_providers:
         console.print(f"  {name} ({cmd}):", end=" ")
         installed, version_msg = _check_cli_installed(cmd)
 
@@ -1477,6 +1543,20 @@ def doctor(
                 console.print("    [dim]Install: npm install -g @anthropic-ai/claude-code[/dim]")
             elif cmd == "codex":
                 console.print("    [dim]Install: npm install -g @openai/codex[/dim]")
+
+    # Check custom providers
+    from focusgroup.agents.registry import get_custom_providers
+
+    custom = get_custom_providers()
+    if custom:
+        console.print("\n[bold]Custom Providers:[/bold]")
+        for name, info in custom.items():
+            console.print(f"  {info.description} ({name}):", end=" ")
+            installed, version_msg = _check_cli_installed(info.cli_command)
+            if installed:
+                console.print(f"[green]✓[/green] {version_msg}")
+            else:
+                console.print(f"[red]✗[/red] {version_msg}")
 
     # Check for session logs
     if verbose:

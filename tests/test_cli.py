@@ -625,7 +625,7 @@ class TestInitCommand:
         from focusgroup.config import load_config
 
         config = load_config(config_file)
-        assert all(agent.provider.value == "codex" for agent in config.agents)
+        assert all(agent.provider_name == "codex" for agent in config.agents)
 
     def test_init_custom_output(self, tmp_path: Path, monkeypatch):
         """Init with --output creates config at custom path."""

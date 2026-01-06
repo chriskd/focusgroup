@@ -178,13 +178,19 @@ class TestAgentRegistry:
     """Test agent registry functions."""
 
     def test_list_providers(self):
-        """list_providers returns all registered providers."""
+        """list_providers returns all registered providers (built-in + custom)."""
+        from focusgroup.agents.registry import list_builtin_providers
+
         providers = list_providers()
-        assert len(providers) == 2  # claude and codex
+        builtin = list_builtin_providers()
+
+        # At least 2 built-in providers
+        assert len(builtin) == 2  # claude and codex
+        assert len(providers) >= len(builtin)  # May have custom providers too
         assert all(isinstance(p, ProviderInfo) for p in providers)
 
-        # Check known providers
-        provider_types = [p.provider for p in providers]
+        # Check built-in providers are present
+        provider_types = [p.provider for p in builtin]
         assert AgentProvider.CLAUDE in provider_types
         assert AgentProvider.CODEX in provider_types
 
