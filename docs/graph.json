@@ -54,10 +54,14 @@
   "edges": [
     {
       "source": "modes",
-      "target": "configuration"
+      "target": "exploration"
     },
     {
       "source": "modes",
+      "target": "configuration"
+    },
+    {
+      "source": "configuration",
       "target": "exploration"
     },
     {
@@ -69,16 +73,12 @@
       "target": "providers"
     },
     {
-      "source": "configuration",
+      "source": "providers",
       "target": "exploration"
     },
     {
       "source": "providers",
       "target": "configuration"
-    },
-    {
-      "source": "providers",
-      "target": "exploration"
     },
     {
       "source": "exploration",

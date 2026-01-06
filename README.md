@@ -82,7 +82,7 @@ claude auth login
 codex auth
 ```
 
-See [Agent Providers Guide](docs/providers.md) for detailed setup instructions.
+See the [Agent Providers Guide](https://chriskd.github.io/focusgroup/providers) for detailed setup instructions.
 
 ## Usage
 
@@ -112,7 +112,7 @@ focusgroup run session.toml
 focusgroup run session.toml --dry-run  # Preview without executing
 ```
 
-See [Configuration Reference](docs/configuration.md) for the full schema.
+See the [Configuration Reference](https://chriskd.github.io/focusgroup/configuration) for the full schema.
 
 ### Session Modes
 
@@ -146,10 +146,13 @@ The `configs/examples/` directory contains ready-to-use templates:
 
 ## Documentation
 
-- [Configuration Reference](docs/configuration.md) - Full config file schema
-- [Agent Providers Guide](docs/providers.md) - Claude, OpenAI, Codex setup
-- [Session Modes](docs/modes.md) - When to use each mode
-- [Exploration Mode](docs/exploration.md) - Letting agents run tools
+Full documentation is available at **[chriskd.github.io/focusgroup](https://chriskd.github.io/focusgroup/)**:
+
+- [Configuration Reference](https://chriskd.github.io/focusgroup/configuration) - Full config file schema
+- [Agent Providers Guide](https://chriskd.github.io/focusgroup/providers) - Claude, OpenAI, Codex setup
+- [Session Modes](https://chriskd.github.io/focusgroup/modes) - When to use each mode
+- [Exploration Mode](https://chriskd.github.io/focusgroup/exploration) - Letting agents run tools
+- [CLI PATH Lookup](https://chriskd.github.io/focusgroup/cli-path-lookup) - How focusgroup finds CLI tools
 
 ## Development
 
