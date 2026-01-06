@@ -245,3 +245,36 @@ class TestAgentRegistry:
         """create_agents with empty list returns empty list."""
         agents = create_agents([])
         assert agents == []
+
+
+class TestCodexTrustError:
+    """Test Codex trust error detection."""
+
+    def test_is_trust_error_detects_trusted_keyword(self):
+        """Detects 'trusted' keyword in error messages."""
+        from focusgroup.agents.codex import _is_trust_error
+
+        assert _is_trust_error("not in a trusted directory")
+        assert _is_trust_error("TRUSTED directory required")
+
+    def test_is_trust_error_detects_approval_keyword(self):
+        """Detects 'approval' keyword in error messages."""
+        from focusgroup.agents.codex import _is_trust_error
+
+        assert _is_trust_error("approval-mode required")
+        assert _is_trust_error("Missing approval for this action")
+
+    def test_is_trust_error_detects_git_repo_message(self):
+        """Detects git repository error messages."""
+        from focusgroup.agents.codex import _is_trust_error
+
+        assert _is_trust_error("not in a git repo")
+        assert _is_trust_error("Not in a Git Repo")
+
+    def test_is_trust_error_returns_false_for_other_errors(self):
+        """Returns False for unrelated errors."""
+        from focusgroup.agents.codex import _is_trust_error
+
+        assert not _is_trust_error("connection timeout")
+        assert not _is_trust_error("API error 500")
+        assert not _is_trust_error("rate limited")

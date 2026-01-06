@@ -23,6 +23,30 @@ DEFAULT_CODEX_CLI_TIMEOUT = 120
 DEFAULT_CODEX_CLI_EXPLORATION_TIMEOUT = 300  # Longer for exploration mode
 
 
+def _is_trust_error(error_msg: str) -> bool:
+    """Check if error message indicates a Codex trusted directory issue.
+
+    Codex CLI requires running from a trusted directory (typically a git repo)
+    or explicit trust flags for full-auto mode.
+
+    Args:
+        error_msg: Error message from Codex CLI
+
+    Returns:
+        True if this is a trust/approval-related error
+    """
+    error_lower = error_msg.lower()
+    trust_keywords = [
+        "trusted",
+        "approval",
+        "not in a git repo",
+        "untrusted",
+        "trust directory",
+        "approval-mode",
+    ]
+    return any(keyword in error_lower for keyword in trust_keywords)
+
+
 class CodexCLIAgent(BaseAgent):
     """Codex agent using the OpenAI Codex CLI tool.
 
@@ -98,6 +122,15 @@ class CodexCLIAgent(BaseAgent):
                         agent_name=self.name,
                         retry_after=retry_after,
                         is_quota_exceeded=is_quota,
+                    )
+
+                # Check for trusted directory errors (common in exploration mode)
+                if _is_trust_error(error_msg):
+                    raise AgentError(
+                        "Codex CLI requires a trusted directory for exploration mode. "
+                        "Run from a git repository or use --approval-mode=full-auto. "
+                        f"Original error: {error_msg.strip()}",
+                        agent_name=self.name,
                     )
 
                 raise AgentError(
@@ -197,6 +230,15 @@ class CodexCLIAgent(BaseAgent):
                         agent_name=self.name,
                         retry_after=retry_after,
                         is_quota_exceeded=is_quota,
+                    )
+
+                # Check for trusted directory errors (common in exploration mode)
+                if _is_trust_error(error_msg):
+                    raise AgentError(
+                        "Codex CLI requires a trusted directory for exploration mode. "
+                        "Run from a git repository, or use --approval-mode=full-auto. "
+                        f"Original error: {error_msg.strip()}",
+                        agent_name=self.name,
                     )
 
                 raise AgentError(
