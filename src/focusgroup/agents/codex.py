@@ -15,7 +15,9 @@ from .base import (
     StreamChunk,
 )
 
-DEFAULT_CODEX_CLI_TIMEOUT = 120  # seconds
+# Default timeouts for Codex CLI (seconds)
+DEFAULT_CODEX_CLI_TIMEOUT = 120
+DEFAULT_CODEX_CLI_EXPLORATION_TIMEOUT = 300  # Longer for exploration mode
 
 
 class CodexCLIAgent(BaseAgent):
@@ -192,4 +194,12 @@ def create_codex_agent(config: AgentConfig) -> BaseAgent:
     if config.provider != AgentProvider.CODEX:
         raise ValueError(f"Expected Codex provider, got {config.provider}")
 
-    return CodexCLIAgent(config)
+    # Determine timeout: explicit config > exploration default > standard default
+    if config.timeout is not None:
+        timeout = config.timeout
+    elif config.exploration:
+        timeout = DEFAULT_CODEX_CLI_EXPLORATION_TIMEOUT
+    else:
+        timeout = DEFAULT_CODEX_CLI_TIMEOUT
+
+    return CodexCLIAgent(config, timeout=timeout)

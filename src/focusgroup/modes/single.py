@@ -132,7 +132,6 @@ class SingleMode(BaseSessionMode):
                 content=f"[Error: {e}]",
                 agent_name=agent.name,
                 model=agent.config.model,
-                mode=agent.config.mode,
                 metadata={
                     "error": True,
                     "error_type": type(e).__name__,
@@ -145,7 +144,6 @@ class SingleMode(BaseSessionMode):
                 content=f"[Unexpected error: {e}]",
                 agent_name=agent.name,
                 model=agent.config.model,
-                mode=agent.config.mode,
                 metadata={
                     "error": True,
                     "error_type": type(e).__name__,

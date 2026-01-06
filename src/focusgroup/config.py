@@ -31,6 +31,7 @@ class AgentConfig(BaseModel):
     name: str | None = None  # Display name, defaults to provider
     system_prompt: str | None = None
     exploration: bool = False  # Enable interactive tool exploration
+    timeout: int | None = None  # Agent timeout in seconds (None = use default)
 
     @property
     def display_name(self) -> str:
@@ -82,6 +83,7 @@ class SessionConfig(BaseModel):
     moderator_agent: AgentConfig | None = None  # Custom moderator agent config
     parallel_agents: bool = True  # Query agents in parallel
     exploration: bool = False  # Allow agents to run tool commands interactively
+    agent_timeout: int | None = None  # Timeout for all agents (seconds)
 
 
 class OutputConfig(BaseModel):

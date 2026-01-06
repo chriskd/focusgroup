@@ -276,7 +276,6 @@ Original question: {base_prompt}"""
                 content=f"[Error in {phase.value} phase: {e}]",
                 agent_name=agent.name,
                 model=agent.config.model,
-                mode=agent.config.mode,
                 metadata={
                     "error": True,
                     "error_type": type(e).__name__,
@@ -289,7 +288,6 @@ Original question: {base_prompt}"""
                 content=f"[Unexpected error in {phase.value} phase: {e}]",
                 agent_name=agent.name,
                 model=agent.config.model,
-                mode=agent.config.mode,
                 metadata={
                     "error": True,
                     "error_type": type(e).__name__,

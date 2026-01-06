@@ -506,6 +506,10 @@ def ask(
         str | None,
         typer.Option("--synthesize-with", "-s", help="Moderator agent: claude or codex"),
     ] = None,
+    timeout: Annotated[
+        int | None,
+        typer.Option("--timeout", help="Agent timeout in seconds (default: 120, exploration: 300)"),
+    ] = None,
 ) -> None:
     """Quick ad-hoc query to an agent panel about a tool.
 
@@ -533,6 +537,7 @@ def ask(
             provider,
             explore,
             synthesize_with,
+            timeout,
         )
     )
 
@@ -578,6 +583,7 @@ async def _ask_impl(
     provider_str: str,
     explore: bool = False,
     synthesize_with: str | None = None,
+    timeout: int | None = None,
 ) -> None:
     """Implementation of the ask command."""
     # Parse --synthesize-with into moderator config
@@ -595,6 +601,9 @@ async def _ask_impl(
             if moderator_config:
                 fg_config.session.moderator = True
                 fg_config.session.moderator_agent = moderator_config
+            # Override timeout if provided
+            if timeout is not None:
+                fg_config.session.agent_timeout = timeout
         except Exception as e:
             console.print(f"[red]Failed to load config: {e}[/red]")
             raise typer.Exit(1) from None
@@ -622,6 +631,7 @@ async def _ask_impl(
                 exploration=explore,
                 moderator=enable_moderator,
                 moderator_agent=moderator_config,
+                agent_timeout=timeout,
             ),
             tool=ToolConfig(command=tool),
             agents=agent_configs,
@@ -707,6 +717,10 @@ def run(
         bool,
         typer.Option("--json", help="Output as JSON (for --dry-run only)"),
     ] = False,
+    timeout: Annotated[
+        int | None,
+        typer.Option("--timeout", help="Agent timeout in seconds (overrides config)"),
+    ] = None,
 ) -> None:
     """Run a full feedback session from a config file."""
     if not config_file.exists():
@@ -722,6 +736,10 @@ def run(
     # Override format if specified
     if format:
         fg_config.output.format = format  # type: ignore
+
+    # Override timeout if specified
+    if timeout is not None:
+        fg_config.session.agent_timeout = timeout
 
     if dry_run:
         _show_session_plan(fg_config, json_output=json_output)

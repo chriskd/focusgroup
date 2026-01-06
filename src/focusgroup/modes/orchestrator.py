@@ -99,6 +99,12 @@ class SessionOrchestrator:
             for agent_config in self._config.agents:
                 agent_config.exploration = True
 
+        # Apply session-level timeout to agents that don't have explicit timeout
+        if self._config.session.agent_timeout is not None:
+            for agent_config in self._config.agents:
+                if agent_config.timeout is None:
+                    agent_config.timeout = self._config.session.agent_timeout
+
         # Create agents from config
         self._agents = create_agents(self._config.agents)
         self._session.agent_count = len(self._agents)
