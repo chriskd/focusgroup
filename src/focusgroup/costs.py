@@ -92,7 +92,7 @@ class CostEstimate:
         return "\n".join(lines)
 
 
-def get_provider_cost(provider: str | "AgentConfig") -> float:
+def get_provider_cost(provider: str | AgentConfig) -> float:
     """Get estimated cost per query for a provider.
 
     Args:
@@ -165,7 +165,7 @@ def estimate_cost(
     )
 
 
-def estimate_from_config(config: "FocusgroupConfig") -> CostEstimate:
+def estimate_from_config(config: FocusgroupConfig) -> CostEstimate:
     """Estimate cost from a full config object.
 
     Args:

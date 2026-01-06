@@ -62,6 +62,7 @@ Controls overall session behavior.
 | `moderator` | bool | `false` | Enable a moderator agent to synthesize feedback |
 | `parallel_agents` | bool | `true` | Query agents concurrently vs sequentially |
 | `exploration` | bool | `false` | Allow agents to run tool commands |
+| `agent_timeout` | integer | none | Timeout in seconds for all agents (overrides defaults) |
 
 ### `[session.moderator_agent]`
 
@@ -83,6 +84,7 @@ Specifies the tool being evaluated.
 | `command` | string | **required** | CLI command name or path to docs |
 | `help_args` | array | `["--help"]` | Arguments to get help output |
 | `working_dir` | string | current dir | Working directory for tool execution |
+| `path_additions` | array | `[]` | Additional directories to add to PATH for agents |
 
 ### `[[agents]]`
 
@@ -90,12 +92,12 @@ Define one or more agents. At least one agent is required.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `provider` | string | **required** | `claude`, `openai`, or `codex` |
-| `mode` | string | `"api"` | `api` (direct API call) or `cli` (invoke CLI tool) |
+| `provider` | string | **required** | `claude`, `codex`, or custom provider name |
 | `model` | string | provider default | Specific model to use |
 | `name` | string | auto-generated | Display name for this agent |
 | `system_prompt` | string | none | Custom system prompt for this agent |
 | `exploration` | bool | `false` | Enable tool exploration for this agent |
+| `timeout` | integer | none | Agent timeout in seconds (overrides session default) |
 
 ### `[questions]`
 
@@ -132,19 +134,38 @@ provider = "claude"
 rounds = ["What do you think of this tool?"]
 ```
 
-## Provider/Mode Combinations
+## Built-in Providers
 
-| Provider | API Mode | CLI Mode | Notes |
-|----------|----------|----------|-------|
-| `claude` | ✅ | ✅ | API uses `ANTHROPIC_API_KEY`, CLI uses `claude` command |
-| `openai` | ✅ | ❌ | Requires `OPENAI_API_KEY` |
-| `codex` | ❌ | ✅ | Uses `codex` CLI |
+| Provider | Description | Notes |
+|----------|-------------|-------|
+| `claude` | Anthropic Claude via `claude` CLI | Requires `claude` CLI installed and authenticated |
+| `codex` | OpenAI Codex via `codex` CLI | Requires `codex` CLI installed |
+
+## Custom Providers
+
+You can define custom providers in `~/.config/focusgroup/providers.toml`:
+
+```toml
+[myagent]
+name = "My Custom Agent"
+command = "my-agent-cli"
+prompt_arg = "--prompt"          # How to pass the prompt
+context_arg = "--context"        # How to pass context (optional)
+model_arg = "--model"            # How to specify model (optional)
+description = "My custom CLI agent"
+```
+
+Then use in configs:
+```toml
+[[agents]]
+provider = "myagent"
+name = "Custom Agent"
+```
 
 ## Model Defaults
 
 When `model` is not specified:
 
-- **claude** (API): `claude-sonnet-4-20250514`
-- **openai** (API): `gpt-4o`
-- **claude** (CLI): Uses claude CLI's default model
-- **codex** (CLI): Uses codex CLI's default model
+- **claude**: Uses claude CLI's default model
+- **codex**: Uses codex CLI's default model
+- Custom providers: Use their CLI defaults

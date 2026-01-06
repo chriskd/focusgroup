@@ -519,11 +519,18 @@ ASK_EXAMPLES = """
   Tag sessions for organization:
   [dim]$ focusgroup ask "Review UX" -x "mx --help" --tag=release-prep[/dim]
 
-  Combine multiple options:
-  [dim]$ focusgroup ask "Full review" -x "mx --help" -e -s claude -n 5[/dim]
+[bold]Example Output:[/bold]
 
-  Preview exploration prompt (dry run):
-  [dim]$ focusgroup ask "Try workflows" -x "mx --help" --explore --dry-run[/dim]
+  [dim]Agent-1 (claude):[/dim]
+  The help output is mostly clear. Suggestions:
+  1. Add usage examples at the bottom
+  2. Mark required vs optional flags
+  Overall: 7/10 for discoverability.
+
+  [dim]Agent-2 (claude):[/dim]
+  Good structure, but --format flag needs clarification on defaults.
+
+  [dim]Session saved: ~/.local/share/focusgroup/logs/20260106-abc123.json[/dim]
 """
 
 

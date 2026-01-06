@@ -4,23 +4,45 @@ Gather feedback from multiple LLM agents on tools designed for agent use.
 
 When building CLI tools that AI agents will consume (like `memex`, `bd`, or custom CLIs), use focusgroup to consult multiple agents about features, design choices, and usability—directly from your terminal.
 
-## Quick Start
+## Quick Start (2 minutes)
+
+**Install:**
+```bash
+pip install focusgroup  # or: uv pip install -e ".[dev]" for dev setup
+```
+
+**Run:**
+```bash
+focusgroup ask "Is this help clear?" -x "mytool --help" -n 1
+```
+
+**Output:**
+```
+Agent-1 (claude):
+The help output is mostly clear, but I have a few suggestions:
+
+1. The "--format" flag mentions "json, text" but doesn't explain the default
+2. The synopsis shows [OPTIONS] but doesn't indicate which are required
+3. Consider adding example commands at the bottom
+
+Overall: 7/10 - functional but could be more discoverable for new users.
+
+Session saved: ~/.local/share/focusgroup/logs/20260106-abc123.json
+```
+
+That's it! You've just consulted an AI agent about your tool's usability.
+
+### More Examples
 
 ```bash
-# Install
-uv pip install -e ".[dev]"
-
-# Quick ad-hoc feedback (3 Claude agents by default)
-focusgroup ask mytool "What's confusing about this interface?"
-
-# Use different providers
-focusgroup ask mytool "How would you use this?" --provider openai
+# Ask 3 agents (default) for diverse perspectives
+focusgroup ask "What improvements would help agents use this?" -x "mytool --help"
 
 # Let agents actually run the tool (exploration mode)
-focusgroup ask mx "Try searching for deployment docs" --explore
+focusgroup ask "Try common workflows" -x "mytool --help" --explore
 
-# Full config-driven session
-focusgroup run configs/examples/discussion-mode.toml
+# Dogfood: review focusgroup itself
+focusgroup demo
 ```
 
 ## Installation
