@@ -690,9 +690,17 @@ def ask(
             "-e",
             help="Enable exploration mode: agents can run the tool interactively. "
             "WARNING: Bypasses sandbox protections. See kb/exploration.md for security details. "
-            "Timeout increases to 300s. Agents execute in current working directory.",
+            "Timeout increases to 300s. Agents execute in --working-dir (default: cwd).",
         ),
     ] = False,
+    working_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--working-dir",
+            "-w",
+            help="Working directory for exploration mode. Isolates agent file access to this path.",
+        ),
+    ] = None,
     synthesize_with: Annotated[
         str | None,
         typer.Option("--synthesize-with", "-s", help="Moderator agent: claude or codex"),
@@ -794,6 +802,7 @@ def ask(
             timeout,
             tag or [],
             verbose=verbose,
+            working_dir=working_dir,
         )
     )
 
@@ -842,6 +851,7 @@ async def _ask_impl(
     timeout: int | None = None,
     tags: list[str] | None = None,
     verbose: bool = False,
+    working_dir: Path | None = None,
 ) -> None:
     """Implementation of the ask command."""
     # Parse --synthesize-with into moderator config
@@ -912,7 +922,7 @@ async def _ask_impl(
         )
 
     # Create the tool wrapper (still used for exploration mode)
-    cli_tool = create_cli_tool(tool)
+    cli_tool = create_cli_tool(tool, working_dir=working_dir)
 
     # Run the session with explicit context
     orchestrator = SessionOrchestrator(
