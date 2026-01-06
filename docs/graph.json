@@ -76,19 +76,19 @@
   "edges": [
     {
       "source": "modes",
-      "target": "configuration"
+      "target": "exploration"
     },
     {
       "source": "modes",
-      "target": "exploration"
-    },
-    {
-      "source": "configuration",
-      "target": "exploration"
+      "target": "configuration"
     },
     {
       "source": "configuration",
       "target": "modes"
+    },
+    {
+      "source": "configuration",
+      "target": "exploration"
     },
     {
       "source": "configuration",
@@ -96,11 +96,11 @@
     },
     {
       "source": "providers",
-      "target": "configuration"
+      "target": "exploration"
     },
     {
       "source": "providers",
-      "target": "exploration"
+      "target": "configuration"
     },
     {
       "source": "json-formats",
@@ -108,11 +108,11 @@
     },
     {
       "source": "json-formats",
-      "target": "configuration"
+      "target": "structured-feedback"
     },
     {
       "source": "json-formats",
-      "target": "structured-feedback"
+      "target": "configuration"
     },
     {
       "source": "exploration",
@@ -120,11 +120,11 @@
     },
     {
       "source": "structured-feedback",
-      "target": "json-formats"
+      "target": "configuration"
     },
     {
       "source": "structured-feedback",
-      "target": "configuration"
+      "target": "json-formats"
     }
   ]
 }
