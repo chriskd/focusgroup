@@ -290,10 +290,17 @@ class SessionOrchestrator:
         """Check if the current mode needs conversation history.
 
         Returns:
-            True if mode uses multi-turn conversations
+            True if mode uses multi-turn conversations or moderator is enabled
         """
         mode = self._config.session.mode
-        return mode in (SessionMode.DISCUSSION, SessionMode.STRUCTURED)
+        # Multi-turn modes always need history
+        # Single mode needs history when moderator is enabled for synthesis
+        if mode in (SessionMode.DISCUSSION, SessionMode.STRUCTURED):
+            return True
+        # Moderator needs history to synthesize responses
+        if self._config.session.moderator:
+            return True
+        return False
 
     def _add_exploration_instructions(self, context: str) -> str:
         """Add exploration instructions to explicit context.

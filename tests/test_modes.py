@@ -397,3 +397,75 @@ class TestModeCreation:
             from focusgroup.modes.structured import StructuredMode
 
             assert isinstance(orchestrator._mode, StructuredMode)
+
+
+class TestNeedsHistory:
+    """Test _needs_history method for various configurations."""
+
+    @pytest.fixture
+    def mock_tool(self):
+        """Create a mock Tool for testing."""
+        tool = MagicMock(spec=Tool)
+        tool.command = "test-tool"
+        tool.name = "test-tool"
+
+        async def mock_get_help():
+            return ToolHelp(
+                tool_name="test-tool",
+                description="A test tool",
+                usage="test-tool [options]",
+                raw_output="Test tool help output",
+            )
+
+        tool.get_help = mock_get_help
+        return tool
+
+    def _create_config(self, mode: SessionMode, moderator: bool = False):
+        """Create a test config with specified mode and moderator setting."""
+        return FocusgroupConfig(
+            session=SessionConfig(name="Test", mode=mode, moderator=moderator),
+            tool=ToolConfig(command="test"),
+            agents=[AgentConfig(provider=AgentProvider.CLAUDE)],
+            questions=QuestionsConfig(rounds=["Q?"]),
+            output=OutputConfig(format="text", save_log=False),
+        )
+
+    def test_single_mode_no_moderator(self, mock_tool, tmp_path):
+        """Single mode without moderator doesn't need history."""
+        config = self._create_config(SessionMode.SINGLE, moderator=False)
+        orchestrator = SessionOrchestrator(
+            config=config,
+            tool=mock_tool,
+            storage=SessionStorage(base_dir=tmp_path),
+        )
+        assert orchestrator._needs_history() is False
+
+    def test_single_mode_with_moderator(self, mock_tool, tmp_path):
+        """Single mode with moderator needs history for synthesis."""
+        config = self._create_config(SessionMode.SINGLE, moderator=True)
+        orchestrator = SessionOrchestrator(
+            config=config,
+            tool=mock_tool,
+            storage=SessionStorage(base_dir=tmp_path),
+        )
+        assert orchestrator._needs_history() is True
+
+    def test_discussion_mode_always_needs_history(self, mock_tool, tmp_path):
+        """Discussion mode always needs history."""
+        config = self._create_config(SessionMode.DISCUSSION, moderator=False)
+        orchestrator = SessionOrchestrator(
+            config=config,
+            tool=mock_tool,
+            storage=SessionStorage(base_dir=tmp_path),
+        )
+        assert orchestrator._needs_history() is True
+
+    def test_structured_mode_always_needs_history(self, mock_tool, tmp_path):
+        """Structured mode always needs history."""
+        config = self._create_config(SessionMode.STRUCTURED, moderator=False)
+        orchestrator = SessionOrchestrator(
+            config=config,
+            tool=mock_tool,
+            storage=SessionStorage(base_dir=tmp_path),
+        )
+        assert orchestrator._needs_history() is True
