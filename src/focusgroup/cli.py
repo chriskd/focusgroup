@@ -46,7 +46,7 @@ MAIN_EPILOG = """
 [bold]Exploration Mode (--explore):[/bold]
 
   [yellow]⚠ SECURITY WARNING[/yellow]: Agents run with relaxed sandbox protections.
-  See docs/exploration.md for full security details.
+  See kb/exploration.md for full security details.
 
   What agents can do:
   - Run the target tool with any arguments
@@ -680,7 +680,7 @@ def ask(
             "--explore",
             "-e",
             help="Enable exploration mode: agents can run the tool interactively. "
-            "WARNING: Bypasses sandbox protections. See docs/exploration.md for security details. "
+            "WARNING: Bypasses sandbox protections. See kb/exploration.md for security details. "
             "Timeout increases to 300s. Agents execute in current working directory.",
         ),
     ] = False,
