@@ -117,10 +117,6 @@
     },
     {
       "source": "quick-start",
-      "target": "configuration"
-    },
-    {
-      "source": "quick-start",
       "target": "providers"
     },
     {
@@ -128,8 +124,12 @@
       "target": "modes"
     },
     {
-      "source": "json-formats",
+      "source": "quick-start",
       "target": "configuration"
+    },
+    {
+      "source": "json-formats",
+      "target": "structured-feedback"
     },
     {
       "source": "json-formats",
@@ -137,7 +137,7 @@
     },
     {
       "source": "json-formats",
-      "target": "structured-feedback"
+      "target": "configuration"
     },
     {
       "source": "exploration",
@@ -145,11 +145,11 @@
     },
     {
       "source": "structured-feedback",
-      "target": "configuration"
+      "target": "json-formats"
     },
     {
       "source": "structured-feedback",
-      "target": "json-formats"
+      "target": "configuration"
     }
   ]
 }
