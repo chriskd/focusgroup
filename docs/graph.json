@@ -93,15 +93,15 @@
     },
     {
       "source": "configuration",
-      "target": "modes"
-    },
-    {
-      "source": "configuration",
       "target": "exploration"
     },
     {
       "source": "configuration",
       "target": "providers"
+    },
+    {
+      "source": "configuration",
+      "target": "modes"
     },
     {
       "source": "providers",
@@ -113,11 +113,11 @@
     },
     {
       "source": "quick-start",
-      "target": "modes"
+      "target": "exploration"
     },
     {
       "source": "quick-start",
-      "target": "exploration"
+      "target": "configuration"
     },
     {
       "source": "quick-start",
@@ -125,19 +125,19 @@
     },
     {
       "source": "quick-start",
+      "target": "modes"
+    },
+    {
+      "source": "json-formats",
       "target": "configuration"
+    },
+    {
+      "source": "json-formats",
+      "target": "modes"
     },
     {
       "source": "json-formats",
       "target": "structured-feedback"
-    },
-    {
-      "source": "json-formats",
-      "target": "modes"
-    },
-    {
-      "source": "json-formats",
-      "target": "configuration"
     },
     {
       "source": "exploration",
@@ -145,11 +145,11 @@
     },
     {
       "source": "structured-feedback",
-      "target": "json-formats"
+      "target": "configuration"
     },
     {
       "source": "structured-feedback",
-      "target": "configuration"
+      "target": "json-formats"
     }
   ]
 }
