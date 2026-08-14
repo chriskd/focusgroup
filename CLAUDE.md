@@ -32,12 +32,12 @@ uv run focusgroup <command>
 
 ## Issue Tracking
 
-Use `bd` (beads) for issue tracking - see AGENTS.md for full workflow.
+Use `tk` (ticket) for issue tracking - see AGENTS.md for full workflow.
 
 ```bash
-bd ready              # See unblocked work
-bd create "title" --description="..." -t feature -p 2 --json
-bd sync               # Always run at end of session
+tk ready              # See unblocked work
+tk create "title" -d "..." -t feature -p 2
+tk close <id>         # Close when done
 ```
 
 ## Documentation (Memex KB)

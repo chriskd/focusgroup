@@ -60,7 +60,7 @@ class MemexTool(CLITool):
 
         # High-level operations
         results = await tool.search("deployment")
-        entry = await tool.get_entry("tooling/beads.md")
+        entry = await tool.get_entry("tooling/ticket-issue-tracker.md")
 
         # Arbitrary command
         result = await tool.run_command(["tags"])
@@ -119,7 +119,7 @@ class MemexTool(CLITool):
         """Get a knowledge base entry.
 
         Args:
-            path: Path to the entry (e.g., "tooling/beads.md")
+            path: Path to the entry (e.g., "tooling/ticket-issue-tracker.md")
             metadata_only: If True, only fetch metadata
 
         Returns:

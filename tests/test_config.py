@@ -240,7 +240,7 @@ format = "json"
         """Load config with multiple agents."""
         config_content = """
 [tool]
-command = "beads"
+    command = "ticket"
 
 [[agents]]
 provider = "claude"
