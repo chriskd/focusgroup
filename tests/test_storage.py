@@ -245,7 +245,7 @@ class TestSessionStorage:
     def test_list_sessions_tool_filter(self, storage: SessionStorage):
         """List filters by tool name."""
         session1 = SessionLog(id="sess1", tool="mx")
-        session2 = SessionLog(id="sess2", tool="beads")
+        session2 = SessionLog(id="sess2", tool="ticket")
         session3 = SessionLog(id="sess3", tool="mx-search")
 
         storage.save(session1)
@@ -255,13 +255,13 @@ class TestSessionStorage:
         sessions = storage.list_sessions(tool_filter="mx")
         assert len(sessions) == 2  # mx and mx-search
 
-        sessions = storage.list_sessions(tool_filter="beads")
+        sessions = storage.list_sessions(tool_filter="ticket")
         assert len(sessions) == 1
 
     def test_list_sessions_tag_filter(self, storage: SessionStorage):
         """List filters by tag."""
         session1 = SessionLog(id="sess1", tool="mx", tags=["release-prep", "urgent"])
-        session2 = SessionLog(id="sess2", tool="beads", tags=["release-prep"])
+        session2 = SessionLog(id="sess2", tool="ticket", tags=["release-prep"])
         session3 = SessionLog(id="sess3", tool="mx", tags=["backlog"])
 
         storage.save(session1)

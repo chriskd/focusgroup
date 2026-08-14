@@ -2,7 +2,7 @@
 
 Gather feedback from multiple LLM agents on tools designed for agent use.
 
-When building CLI tools that AI agents will consume (like `memex`, `bd`, or custom CLIs), use focusgroup to consult multiple agents about features, design choices, and usability—directly from your terminal.
+When building CLI tools that AI agents will consume (like `memex`, `tk`, or custom CLIs), use focusgroup to consult multiple agents about features, design choices, and usability—directly from your terminal.
 
 ## Quick Start (2 minutes)
 
